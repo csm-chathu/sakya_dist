@@ -12,6 +12,9 @@ pos-client/dist/
 pos-client/dist-electron/
 pos-client/release/
 
+# Electron
+electron/
+
 # Logs
 *.log
 npm-debug.log*
