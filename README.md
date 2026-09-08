@@ -1,17 +1,16 @@
-# LMUC POS
+# Shakya Distribution
 
-Multi-tenant Point of Sale system — Express.js API + React/Vite/Tailwind client + Electron desktop app.
+Multi-tenant distribution management system — Express.js API + React/Vite/Tailwind client.
 
 ---
 
 ## Stack
 
-| Layer    | Technology |
-|----------|-----------|
-| API      | Node.js, Express, Sequelize, MySQL |
-| Client   | React, Vite, Tailwind CSS, Redux Toolkit |
-| Desktop  | Electron |
-| Auth     | JWT, role-based (`admin`, `manager`, `cashier`) |
+| Layer  | Technology |
+|--------|-----------|
+| API    | Node.js, Express, Sequelize, MySQL |
+| Client | React, Vite, Tailwind CSS, Redux Toolkit |
+| Auth   | JWT, role-based (`admin`, `manager`, `cashier`) |
 
 ---
 
@@ -19,8 +18,24 @@ Multi-tenant Point of Sale system — Express.js API + React/Vite/Tailwind clien
 
 ```
 pos-api/        — Express REST API (multi-tenant, per-subdomain DB)
-pos-client/     — React SPA + Electron shell
+pos-client/     — React SPA
 ```
+
+---
+
+## Features
+
+| Module | Description |
+|--------|-------------|
+| Sales Orders | Create and manage distribution orders with delivery dates |
+| Deliveries | Dispatch tracking — pending → loaded → in transit → delivered |
+| Areas | Delivery zones/routes for grouping customers |
+| Products | Inventory with retail, wholesale, and VIP pricing |
+| Customers | Price levels (retail/wholesale/vip) and payment terms |
+| Suppliers & Purchases | Stock receiving with GRN |
+| Credit | Customer credit balances, settlement, aging report |
+| Reports | Daily, monthly, profit, stock, aging receivables |
+| Users & Roles | Role-based access control with feature permissions |
 
 ---
 
@@ -32,7 +47,7 @@ pos-client/     — React SPA + Electron shell
 cd pos-api
 npm install
 cp .env.example .env   # set DB_HOST, JWT_SECRET, etc.
-npm run dev            # nodemon
+npm run dev            # nodemon on port 8000
 ```
 
 ### Client
@@ -43,84 +58,62 @@ npm install
 npm run dev            # Vite dev server
 ```
 
-### Electron (desktop)
-
-```bash
-cd pos-client
-npm run electron:dev
-```
-
 ---
 
 ## Tenant Management
 
 Each subdomain maps to its own MySQL database, configured in `pos-api/src/config/tenants.js`.
 
-### Adding a new tenant (full setup)
-
-Interactively creates the MySQL database, grants privileges, patches `tenants.js`, migrates schema, seeds master data, and creates the first admin user.
-
-```bash
-cd pos-api
-node scripts/add-tenant.js
-```
-
-Prompts:
-```
-Subdomain host:      newshop-pos.lumac.cc
-Database name:       newshop_db
-DB username:         pos_user
-DB password:         ****
-DB host:             localhost
-MySQL root user:     root
-MySQL root password: ****
-Admin full name:     Kasun Silva
-Admin email:         admin@newshop.lk
-Admin password:      ****
-```
-
----
-
-### Migrate an existing tenant
-
-Use this when:
-- The database already exists (added to `tenants.js` manually)
-- You want to provision a fresh database with schema + master data + first admin user
-
-**Step 1** — Add the tenant to `pos-api/src/config/tenants.js`:
+### Local development tenant
 
 ```js
-'newshop-pos.lumac.cc': {
-  database: 'newshop_db',
+// pos-api/src/config/tenants.js
+localhost: {
+  database: 'sakya_dist',
+  username: 'root',
+  password: 'root',
+  host: '127.0.0.1',
+},
+```
+
+### Adding a new tenant
+
+**Step 1** — Create the database in MySQL.
+
+**Step 2** — Add the tenant to `pos-api/src/config/tenants.js`:
+
+```js
+'yourshop.lumac.cc': {
+  database: 'yourshop_dist',
   username: 'pos_user',
   password: 'Pos@2026Strong',
 },
 ```
 
-**Step 2** — Run the migrate script:
+**Step 3** — Migrate and seed:
 
 ```bash
 cd pos-api
-node scripts/migrate.js newshop-pos.lumac.cc
+
+# Schema only (safe — no data touched)
+node scripts/migrate.js yourshop.lumac.cc
+
+# Schema + roles + settings + default users
+node scripts/migrate.js yourshop.lumac.cc --seed
+
+# Drop everything and start fresh
+node scripts/migrate.js yourshop.lumac.cc --fresh
 ```
 
-or
+**Step 4** — Load sample distribution data:
 
 ```bash
-npm run migrate newshop-pos.lumac.cc
+node scripts/seed-distribution.js yourshop.lumac.cc
 ```
 
-Prompts for admin credentials, then automatically:
+Seeds: 5 categories, 4 suppliers, 12 products (with wholesale pricing), 6 delivery areas, 8 customers (with price levels and payment terms).
 
-| Step | Action |
-|------|--------|
-| 1 | `sync({ alter: true })` — creates / updates all tables (safe, no data loss) |
-| 2 | Seeds roles: `admin`, `manager`, `cashier` |
-| 3 | Seeds default categories: `General`, `Other` |
-| 4 | Seeds default settings (shop name, currency, receipt footer, etc.) |
-| 5 | Creates the first admin user |
-
-**Step 3** — Restart the API:
+**Step 5** — Restart the API:
 
 ```bash
 pm2 restart pos-api
@@ -130,7 +123,7 @@ pm2 restart pos-api
 
 ### Schema changes (existing tenants)
 
-When you add a new column or model to `pos-api/src/models/index.js`, apply it to an existing tenant:
+When you add a new column or model to `pos-api/src/models/index.js`, apply it to live tenants:
 
 ```bash
 node scripts/migrate.js <host>
@@ -144,9 +137,21 @@ Sequelize `alter: true` adds new columns/tables without touching existing data.
 
 | Role      | Permissions |
 |-----------|-------------|
-| `admin`   | Full access — users, settings, reports, all CRUD |
-| `manager` | Sales, purchases, products, customers, suppliers, settings |
-| `cashier` | POS sales only |
+| `admin`   | Full access — users, settings, reports, all modules |
+| `manager` | Orders, deliveries, products, customers, suppliers, reports |
+| `cashier` | Orders and customers |
+
+---
+
+## Customer Price Levels
+
+| Level | Auto-selected price |
+|-------|-------------------|
+| `retail` | `selling_price` |
+| `wholesale` | `wholesale_price` |
+| `vip` | `wholesale_price` |
+
+When creating an order, the unit price auto-fills based on the selected customer's price level.
 
 ---
 
@@ -156,7 +161,7 @@ Sequelize `alter: true` adds new columns/tables without touching existing data.
 DB_HOST=localhost
 DB_PORT=3306
 JWT_SECRET=your_secret_here
-PORT=3001
+PORT=8000
 ```
 
 ---
@@ -169,9 +174,11 @@ PORT=3001
 |---------|-------------|
 | `npm run dev` | Start API with nodemon |
 | `npm start` | Start API (production) |
-| `npm run migrate <host>` | Migrate + seed a tenant |
+| `node scripts/migrate.js <host>` | Migrate schema (safe) |
+| `node scripts/migrate.js <host> --seed` | Migrate + seed roles/users |
+| `node scripts/migrate.js <host> --fresh` | Drop all + fresh seed |
+| `node scripts/seed-distribution.js <host>` | Load sample distribution data |
 | `node scripts/add-tenant.js` | Interactive full tenant setup |
-| `node scripts/migrate.js <host>` | Migrate + seed existing tenant |
 
 ### Client (`pos-client/`)
 
@@ -179,16 +186,15 @@ PORT=3001
 |---------|-------------|
 | `npm run dev` | Vite dev server |
 | `npm run build` | Production build |
-| `npm run electron:dev` | Electron + Vite dev |
-| `npm run electron:build` | Build Electron installer |
 
+---
 
+## Default Login
 
-# Existing DB — schema changes only, no data touched
-node scripts/migrate.js chandana-pos.lumac.cc
+After running `migrate.js --seed`:
 
-# New DB — schema + seed roles + settings + admin user
-node scripts/migrate.js newshop-pos.lumac.cc --seed
-
-
-node scripts/migrate.js newshop-pos.lumac.cc --fresh
+| Email | Password | Role |
+|-------|----------|------|
+| admin@lumac.lk | 123 | admin |
+| manager@lumac.lk | 123 | manager |
+| cashier@lumac.lk | 123 | cashier |

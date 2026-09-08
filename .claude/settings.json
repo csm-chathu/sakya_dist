@@ -48,7 +48,10 @@
       "Bash(node -p \"require\\('e:/LMUC/POS-sinhala/pos-client/node_modules/vite-plugin-electron/package.json'\\).main\")",
       "Bash(node -p \"JSON.stringify\\(require\\('e:/LMUC/POS-sinhala/pos-client/node_modules/electron/package.json'\\).exports, null, 2\\)\")",
       "Bash(node -p \"require\\('e:/LMUC/POS-sinhala/pos-client/node_modules/electron/package.json'\\).main\")",
-      "Bash(powershell -Command \"Add-MpPreference -ExclusionPath 'E:\\\\LMUC\\\\POS-sinhala\\\\pos-client\\\\release'\")"
+      "Bash(powershell -Command \"Add-MpPreference -ExclusionPath 'E:\\\\LMUC\\\\POS-sinhala\\\\pos-client\\\\release'\")",
+      "Bash(git -C e:/LMUC/shakya remote -v)",
+      "Bash(git -C e:/LMUC/shakya remote remove origin)",
+      "Bash(where mysql *)"
     ]
   },
   "hooks": {
