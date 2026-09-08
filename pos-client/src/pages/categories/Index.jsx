@@ -1,39 +1,24 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import {
   useGetCategoriesQuery, useCreateCategoryMutation,
   useUpdateCategoryMutation, useDeleteCategoryMutation,
 } from '../../features/categories/categoriesApi';
 import { useLocale } from '../../contexts/LocaleContext';
-import { useConnectivity } from '../../contexts/ConnectivityContext';
-import { getLocalCategories } from '../../services/cacheSync';
-import { enqueueCategoryCreate, enqueueCategoryEdit, getPendingQueueByTypes } from '../../services/offlineQueue';
 import ConfirmModal from '../../components/ConfirmModal';
 
 const empty = { name: '' };
 
 export default function CategoriesIndex() {
   const { t } = useLocale();
-  const { isOnline } = useConnectivity();
   const [modal, setModal] = useState(null);
   const [err, setErr]     = useState('');
   const [saving, setSaving] = useState(false);
-  const [offlineCategories, setOfflineCategories] = useState([]);
-  const [pendingCategories, setPendingCategories] = useState([]);
   const [confirmDelete, setConfirmDelete] = useState(null);
 
   const { register, handleSubmit: rhfSubmit, formState: { errors }, reset, setFocus } = useForm({ defaultValues: empty });
 
-  const loadPending = () => getPendingQueueByTypes(['category_create']).then(setPendingCategories);
-
-  useEffect(() => {
-    if (!isOnline) getLocalCategories().then(setOfflineCategories);
-    loadPending();
-  }, [isOnline]);
-
-  const { data: serverCategories = [], isLoading, refetch } = useGetCategoriesQuery(undefined, { skip: !isOnline });
-  const baseCategories = isOnline ? serverCategories : offlineCategories;
-  const categories = [...pendingCategories, ...baseCategories.filter(c => !pendingCategories.some(p => p.id === c.id))];
+  const { data: categories = [], isLoading, refetch } = useGetCategoriesQuery();
   const [create, { isLoading: creating }] = useCreateCategoryMutation();
   const [update, { isLoading: updating }] = useUpdateCategoryMutation();
   const [del]                             = useDeleteCategoryMutation();
@@ -46,21 +31,9 @@ export default function CategoriesIndex() {
     setErr('');
     setSaving(true);
     try {
-      if (isOnline) {
-        if (modal?.edit) await update({ id: modal.edit.id, ...data }).unwrap();
-        else await create(data).unwrap();
-        refetch();
-      } else {
-        if (modal?.edit) {
-          await enqueueCategoryEdit(modal.edit.id, data);
-          setOfflineCategories(prev => prev.map(c =>
-            c.id === modal.edit.id ? { ...c, ...data } : c
-          ));
-        } else {
-          await enqueueCategoryCreate(data);
-          await loadPending();
-        }
-      }
+      if (modal?.edit) await update({ id: modal.edit.id, ...data }).unwrap();
+      else await create(data).unwrap();
+      refetch();
       close();
     } catch (e) { setErr(e?.data?.error || 'Failed'); }
     finally { setSaving(false); }
@@ -79,17 +52,10 @@ export default function CategoriesIndex() {
     <div className="p-3 sm:p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-slate-800">{t('page.categories')}</h1>
-        <div className="flex items-center gap-2">
-          {!isOnline && (
-            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-xs font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Offline
-            </span>
-          )}
-          <button onClick={openCreate}
-            className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">
-            + {t('btn.add')} {t('nav.categories')}
-          </button>
-        </div>
+        <button onClick={openCreate}
+          className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+          + {t('btn.add')} {t('nav.categories')}
+        </button>
       </div>
 
       {/* Mobile cards */}
@@ -106,7 +72,6 @@ export default function CategoriesIndex() {
               </div>
               <div>
                 <p className="font-semibold text-slate-800">{c.name}</p>
-                {(c._offline || c._pending) && <span className="text-[10px] text-amber-600 font-medium">Pending sync</span>}
               </div>
             </div>
             <div className="flex gap-2">
@@ -114,12 +79,10 @@ export default function CategoriesIndex() {
                 className="px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
                 {t('btn.edit')}
               </button>
-              {isOnline && (
-                <button onClick={() => handleDelete(c)}
-                  className="px-3 py-1.5 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
-                  {t('btn.delete')}
-                </button>
-              )}
+              <button onClick={() => handleDelete(c)}
+                className="px-3 py-1.5 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
+                {t('btn.delete')}
+              </button>
             </div>
           </div>
         ))}
@@ -150,10 +113,7 @@ export default function CategoriesIndex() {
                       <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-100 to-indigo-200 flex items-center justify-center text-blue-700 text-xs font-black shrink-0">
                         {c.name?.[0]?.toUpperCase()}
                       </div>
-                      <div>
-                        <span className="font-medium text-slate-800">{c.name}</span>
-                        {(c._offline || c._pending) && <span className="ml-2 text-[10px] text-amber-600 font-medium">Pending sync</span>}
-                      </div>
+                      <span className="font-medium text-slate-800">{c.name}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -162,12 +122,10 @@ export default function CategoriesIndex() {
                         className="inline-flex items-center px-2.5 py-1 rounded-md border border-blue-200 bg-blue-50 text-xs font-medium text-blue-600 hover:bg-blue-100 transition-colors">
                         {t('btn.edit')}
                       </button>
-                      {isOnline && (
-                        <button onClick={() => handleDelete(c)}
-                          className="inline-flex items-center px-2.5 py-1 rounded-md border border-red-200 bg-red-50 text-xs font-medium text-red-500 hover:bg-red-100 transition-colors">
-                          {t('btn.delete')}
-                        </button>
-                      )}
+                      <button onClick={() => handleDelete(c)}
+                        className="inline-flex items-center px-2.5 py-1 rounded-md border border-red-200 bg-red-50 text-xs font-medium text-red-500 hover:bg-red-100 transition-colors">
+                        {t('btn.delete')}
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -195,12 +153,6 @@ export default function CategoriesIndex() {
               </h2>
               <button onClick={close} className="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
             </div>
-            {!isOnline && (
-              <div className="flex items-center gap-1.5 px-3 py-2 mb-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-xs font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-                Offline — will sync when reconnected
-              </div>
-            )}
             <form onSubmit={handleSave} className="space-y-3">
               {err && <p className="text-sm text-red-600">{err}</p>}
               <div>

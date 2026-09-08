@@ -300,4 +300,63 @@ router.get('/daily-sales', auth, async (req, res) => {
   res.json({ dates, rows: Object.values(productMap) });
 });
 
+// GET /api/reports/aging — credit customers grouped by days outstanding
+router.get('/aging', auth, async (req, res) => {
+  const db = req.db;
+  const today = new Date().toISOString().slice(0, 10);
+
+  const rows = await db.query(`
+    SELECT
+      c.id, c.name, c.phone, c.payment_terms,
+      c.credit_balance,
+      MIN(s.created_at) as oldest_credit_sale
+    FROM customers c
+    LEFT JOIN sales s ON s.customer_id = c.id
+      AND s.status != 'held'
+      AND EXISTS (SELECT 1 FROM payments p WHERE p.sale_id = s.id AND p.method = 'credit')
+    WHERE c.credit_balance > 0
+    GROUP BY c.id, c.name, c.phone, c.payment_terms, c.credit_balance
+    ORDER BY oldest_credit_sale ASC
+  `, { type: db.QueryTypes.SELECT });
+
+  const buckets = { current: [], days_31_60: [], days_61_90: [], over_90: [] };
+  const now = new Date(today);
+
+  for (const r of rows) {
+    const days = r.oldest_credit_sale
+      ? Math.floor((now - new Date(r.oldest_credit_sale)) / 86400000)
+      : 0;
+    r.days_outstanding = days;
+    if (days <= 30) buckets.current.push(r);
+    else if (days <= 60) buckets.days_31_60.push(r);
+    else if (days <= 90) buckets.days_61_90.push(r);
+    else buckets.over_90.push(r);
+  }
+
+  const total = rows.reduce((s, r) => s + parseFloat(r.credit_balance), 0);
+  res.json({ buckets, total, as_of: today });
+});
+
+// GET /api/reports/credit-payments?from=YYYY-MM-DD&to=YYYY-MM-DD
+router.get('/credit-payments', auth, async (req, res) => {
+  const { CreditPayment, Customer, User } = req.models;
+  const from = req.query.from || new Date().toISOString().slice(0, 10);
+  const to   = req.query.to   || from;
+  const rows = await CreditPayment.findAll({
+    where: {
+      created_at: {
+        [Op.gte]: new Date(from + 'T00:00:00'),
+        [Op.lte]: new Date(to   + 'T23:59:59'),
+      },
+    },
+    include: [
+      { model: Customer, as: 'customer', attributes: ['id', 'name', 'phone'] },
+      { model: User,     as: 'user',     attributes: ['id', 'name'] },
+    ],
+    order: [['created_at', 'DESC']],
+  });
+  const total = rows.reduce((s, r) => s + parseFloat(r.amount), 0);
+  res.json({ payments: rows, total });
+});
+
 module.exports = router;

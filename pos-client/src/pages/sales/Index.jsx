@@ -4,18 +4,11 @@ import { useGetSalesQuery, useDeleteSaleMutation } from '../../features/sales/sa
 import { useSelector } from 'react-redux';
 import { selectRole } from '../../features/auth/authSlice';
 import { useLocale } from '../../contexts/LocaleContext';
-import { useConnectivity } from '../../contexts/ConnectivityContext';
-import { getLocalSales } from '../../services/cacheSync';
 
 export default function SalesIndex() {
   const role = useSelector(selectRole);
   const canDelete = role === 'admin';
   const navigate = useNavigate();
-  const { isOnline } = useConnectivity();
-  const [offlineSales, setOfflineSales] = useState([]);
-  useEffect(() => {
-    if (!isOnline) getLocalSales().then(setOfflineSales);
-  }, [isOnline]);
 
   // Barcode scanner: fast keystrokes → navigate to POS with barcode pre-loaded
   const barcodeRef  = useRef('');
@@ -50,14 +43,10 @@ export default function SalesIndex() {
   const [page, setPage]     = useState(1);
   const [applied, setApplied] = useState({});
 
-  const { data, isLoading } = useGetSalesQuery({ ...applied, page }, { skip: !isOnline });
+  const { data, isLoading } = useGetSalesQuery({ ...applied, page });
   const [deleteSale] = useDeleteSaleMutation();
 
-  const rows = isOnline ? (data?.data || []) : offlineSales.filter(s => {
-    if (applied.search && !s.invoice_no?.toLowerCase().includes(applied.search.toLowerCase())) return false;
-    if (applied.date && !s.created_at?.startsWith(applied.date)) return false;
-    return true;
-  });
+  const rows = data?.data || [];
 
   useEffect(() => {
     if (search.length === 0) { setApplied(a => ({ ...a, search: '' })); setPage(1); return; }
@@ -113,13 +102,6 @@ export default function SalesIndex() {
           + {t('btn.new_sale')}
         </Link>
       </div>
-
-      {!isOnline && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm font-medium">
-          <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-          Offline — showing cached data (read only)
-        </div>
-      )}
 
       {/* Filters */}
       <form onSubmit={handleSearch} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex flex-wrap gap-3 items-end">
@@ -230,7 +212,7 @@ export default function SalesIndex() {
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       <Link to={`/sales/${s.id}`} className="inline-flex items-center px-2.5 py-1 rounded-md border border-blue-200 bg-blue-50 text-xs font-medium text-blue-600 hover:bg-blue-100 transition-colors">{t('btn.view')}</Link>
-                      {canDelete && isOnline && (
+                      {canDelete && (
                         <button onClick={() => handleDelete(s.id, s.invoice_no)} className="inline-flex items-center px-2.5 py-1 rounded-md border border-red-200 bg-red-50 text-xs font-medium text-red-500 hover:bg-red-100 transition-colors">{t('btn.delete')}</button>
                       )}
                     </div>

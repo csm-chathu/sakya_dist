@@ -6,16 +6,21 @@ import {
   useDeleteCustomerMutation, useSettleCreditMutation, useAdjustCreditMutation,
 } from '../../features/customers/customersApi';
 import { useLocale } from '../../contexts/LocaleContext';
-import { useConnectivity } from '../../contexts/ConnectivityContext';
-import { getLocalCustomers } from '../../services/cacheSync';
-import { enqueueCustomerCreate, enqueueCustomerEdit, getPendingQueueByTypes } from '../../services/offlineQueue';
 import ConfirmModal from '../../components/ConfirmModal';
 
-const empty = { name: '', phone: '', email: '', address: '', credit_limit: 0, active: true };
+const PRICE_LEVELS   = ['retail', 'wholesale', 'vip'];
+const PAYMENT_TERMS  = [
+  { value: 'cash',   label: 'Cash on Delivery' },
+  { value: 'net_7',  label: 'Net 7 days' },
+  { value: 'net_15', label: 'Net 15 days' },
+  { value: 'net_30', label: 'Net 30 days' },
+  { value: 'net_60', label: 'Net 60 days' },
+];
+
+const empty = { name: '', phone: '', email: '', address: '', credit_limit: 0, active: true, price_level: 'retail', payment_terms: 'cash' };
 
 export default function CustomersIndex() {
   const { t } = useLocale();
-  const { isOnline } = useConnectivity();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [page, setPage]     = useState(1);
@@ -27,13 +32,6 @@ export default function CustomersIndex() {
   const [err, setErr]       = useState('');
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
-  const [offlineCustomers, setOfflineCustomers] = useState([]);
-  const [pendingCustomers, setPendingCustomers] = useState([]);
-  const loadPending = () => getPendingQueueByTypes(['customer_create']).then(setPendingCustomers);
-  useEffect(() => {
-    if (!isOnline) getLocalCustomers().then(setOfflineCustomers);
-    loadPending();
-  }, [isOnline]);
 
   useEffect(() => {
     if (search.length === 0) { setApplied(''); setPage(1); return; }
@@ -42,12 +40,9 @@ export default function CustomersIndex() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const { data, isLoading, refetch } = useGetCustomersQuery({ search: applied, page }, { skip: !isOnline });
+  const { data, isLoading, refetch } = useGetCustomersQuery({ search: applied, page });
 
-  const baseRows = isOnline ? (data?.data || []) : offlineCustomers.filter(c =>
-    !applied || c.name?.toLowerCase().includes(applied.toLowerCase()) || c.phone?.includes(applied)
-  );
-  const displayRows = [...pendingCustomers, ...baseRows.filter(r => !pendingCustomers.some(p => p.id === r.id))];
+  const displayRows = data?.data || [];
   const [create, { isLoading: creating }] = useCreateCustomerMutation();
   const [update, { isLoading: updating }] = useUpdateCustomerMutation();
   const [del]     = useDeleteCustomerMutation();
@@ -64,21 +59,9 @@ export default function CustomersIndex() {
     setErr('');
     setSaving(true);
     try {
-      if (isOnline) {
-        if (modal.data) await update({ id: modal.data.id, ...data }).unwrap();
-        else await create(data).unwrap();
-        refetch();
-      } else {
-        if (modal.data) {
-          await enqueueCustomerEdit(modal.data.id, data);
-          setOfflineCustomers(prev => prev.map(c =>
-            c.id === modal.data.id ? { ...c, ...data } : c
-          ));
-        } else {
-          await enqueueCustomerCreate(data);
-          await loadPending();
-        }
-      }
+      if (modal.data) await update({ id: modal.data.id, ...data }).unwrap();
+      else await create(data).unwrap();
+      refetch();
       close();
     } catch (e) { setErr(e?.data?.error || 'Failed'); }
     finally { setSaving(false); }
@@ -121,11 +104,6 @@ export default function CustomersIndex() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-slate-800">{t('page.customers')}</h1>
         <div className="flex items-center gap-2">
-          {!isOnline && (
-            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-xs font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Offline
-            </span>
-          )}
           <button onClick={openCreate} className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">
             + {t('btn.add')} {t('lbl.customer')}
           </button>
@@ -159,7 +137,6 @@ export default function CustomersIndex() {
             <div className="flex items-start justify-between mb-2">
               <div>
                 <p className="font-semibold text-slate-800">{c.name}</p>
-                {(c._offline || c._pending) && <span className="text-[10px] text-amber-600 font-medium">Pending sync</span>}
                 <p className="text-xs text-slate-400 mt-0.5">{c.phone || '—'}</p>
               </div>
               <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${c.active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
@@ -183,12 +160,10 @@ export default function CustomersIndex() {
                 className="flex-1 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
                 {t('btn.edit')}
               </button>
-              {isOnline && (
-                <button onClick={() => handleDelete(c)}
-                  className="flex-1 py-1.5 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
-                  {t('btn.delete')}
-                </button>
-              )}
+              <button onClick={() => handleDelete(c)}
+                className="flex-1 py-1.5 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
+                {t('btn.delete')}
+              </button>
             </div>
           </div>
         ))}
@@ -212,6 +187,8 @@ export default function CustomersIndex() {
               <tr>
                 <th className="px-4 py-3 text-left font-semibold">{t('cust.name')}</th>
                 <th className="px-4 py-3 text-left font-semibold">{t('cust.phone')}</th>
+                <th className="px-4 py-3 text-left font-semibold">Price Level</th>
+                <th className="px-4 py-3 text-left font-semibold">Payment Terms</th>
                 <th className="px-4 py-3 text-right font-semibold">{t('lbl.credit_limit')}</th>
                 <th className="px-4 py-3 text-right font-semibold">{t('lbl.balance')}</th>
                 <th className="px-4 py-3 text-center font-semibold">{t('th.status')}</th>
@@ -221,11 +198,18 @@ export default function CustomersIndex() {
             <tbody>
               {displayRows.map(c => (
                 <tr key={c.id} className="odd:bg-white even:bg-slate-50 hover:bg-blue-50 border-b border-slate-100 transition-colors">
-                  <td className="px-4 py-3 font-medium text-slate-800">
-                    {c.name}
-                    {(c._offline || c._pending) && <span className="ml-2 text-[10px] text-amber-600 font-medium">Pending sync</span>}
-                  </td>
+                  <td className="px-4 py-3 font-medium text-slate-800">{c.name}</td>
                   <td className="px-4 py-3 text-slate-500">{c.phone || '—'}</td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold capitalize ${
+                      c.price_level === 'wholesale' ? 'bg-blue-100 text-blue-700' :
+                      c.price_level === 'vip'       ? 'bg-purple-100 text-purple-700' :
+                                                      'bg-slate-100 text-slate-600'
+                    }`}>{c.price_level || 'retail'}</span>
+                  </td>
+                  <td className="px-4 py-3 text-slate-500 text-xs">{
+                    PAYMENT_TERMS.find(pt => pt.value === c.payment_terms)?.label || 'Cash'
+                  }</td>
                   <td className="px-4 py-3 text-right text-slate-600">{fmt(c.credit_limit)}</td>
                   <td className="px-4 py-3 text-right">
                     <span className={parseFloat(c.credit_balance) > 0 ? 'text-red-600 font-semibold' : 'text-slate-600'}>
@@ -239,19 +223,18 @@ export default function CustomersIndex() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1.5">
-                      {(c._offline || c._pending) && <span className="text-[10px] text-amber-600 font-medium">Pending</span>}
                       {parseFloat(c.credit_balance) > 0 && (
                         <button onClick={() => navigate(`/customers/${c.id}/credit`)} className="inline-flex items-center px-2.5 py-1 rounded-md border border-orange-200 bg-orange-50 text-xs font-medium text-orange-600 hover:bg-orange-100 transition-colors">Credit</button>
                       )}
                       <button onClick={() => openAdjust(c)} className="inline-flex items-center px-2.5 py-1 rounded-md border border-violet-200 bg-violet-50 text-xs font-medium text-violet-600 hover:bg-violet-100 transition-colors">Adjust</button>
                       <button onClick={() => openEdit(c)} className="inline-flex items-center px-2.5 py-1 rounded-md border border-blue-200 bg-blue-50 text-xs font-medium text-blue-600 hover:bg-blue-100 transition-colors">{t('btn.edit')}</button>
-                      {isOnline && <button onClick={() => handleDelete(c)} className="inline-flex items-center px-2.5 py-1 rounded-md border border-red-200 bg-red-50 text-xs font-medium text-red-500 hover:bg-red-100 transition-colors">{t('btn.delete')}</button>}
+                      <button onClick={() => handleDelete(c)} className="inline-flex items-center px-2.5 py-1 rounded-md border border-red-200 bg-red-50 text-xs font-medium text-red-500 hover:bg-red-100 transition-colors">{t('btn.delete')}</button>
                     </div>
                   </td>
                 </tr>
               ))}
               {!displayRows.length && (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">{t('cust.no_customers')}</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400">{t('cust.no_customers')}</td></tr>
               )}
             </tbody>
           </table></div>
@@ -271,12 +254,6 @@ export default function CustomersIndex() {
       {/* Form Modal */}
       {modal?.mode === 'form' && (
         <Modal title={modal.data ? `${t('btn.edit')} ${t('lbl.customer')}` : `${t('btn.add')} ${t('lbl.customer')}`} onClose={close}>
-          {!isOnline && (
-            <div className="flex items-center gap-1.5 px-3 py-2 mb-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-xs font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-              Offline — will sync when reconnected
-            </div>
-          )}
           <form onSubmit={handleSave} className="space-y-3">
             {err && <p className="text-sm text-red-600">{err}</p>}
             <Field label={`${t('cust.name')} *`} error={errors.name}
@@ -286,6 +263,20 @@ export default function CustomersIndex() {
             <Field label={t('cust.address')} {...register('address')} />
             <Field label={t('cust.credit_limit')} type="number" min="0" step="0.01"
               {...register('credit_limit', { min: { value: 0, message: 'Cannot be negative' } })} error={errors.credit_limit} />
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Price Level</label>
+              <select {...register('price_level')}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white capitalize">
+                {PRICE_LEVELS.map(l => <option key={l} value={l} className="capitalize">{l}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Payment Terms</label>
+              <select {...register('payment_terms')}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                {PAYMENT_TERMS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
             <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
               <input type="checkbox" {...register('active')} className="rounded" />
               {t('cust.active')}

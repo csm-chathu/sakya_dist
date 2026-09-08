@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useGetSalesQuery } from '../../features/sales/salesApi';
 import { useSelector } from 'react-redux';
 import { selectRole } from '../../features/auth/authSlice';
-import { useConnectivity } from '../../contexts/ConnectivityContext';
 
 const fmt     = n => 'Rs. ' + Number(n || 0).toLocaleString('en-LK', { minimumFractionDigits: 2 });
 const fmtDate = s => new Date(s).toLocaleDateString('en-LK');
@@ -31,7 +30,6 @@ function PayBadges({ payments }) {
 export default function InvoicesIndex() {
   const role      = useSelector(selectRole);
   const canDelete = role === 'admin';
-  const { isOnline } = useConnectivity();
 
   const [search, setSearch]   = useState('');
   const [date, setDate]       = useState('');
@@ -39,7 +37,7 @@ export default function InvoicesIndex() {
   const [page, setPage]       = useState(1);
   const [applied, setApplied] = useState({});
 
-  const { data, isLoading } = useGetSalesQuery({ ...applied, page }, { skip: !isOnline });
+  const { data, isLoading } = useGetSalesQuery({ ...applied, page });
   const rows = data?.data || [];
 
   useEffect(() => {

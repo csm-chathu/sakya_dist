@@ -7,11 +7,9 @@ import {
   useUpdateProductMutation,
   useGetCategoriesQuery,
 } from '../../features/products/productsApi';
-import { selectToken } from '../../features/auth/authSlice';
+import { selectToken, selectRole } from '../../features/auth/authSlice';
 import { getApiUrl } from '../../config/runtimeConfig';
 import { useLocale } from '../../contexts/LocaleContext';
-import { useConnectivity } from '../../contexts/ConnectivityContext';
-import { getLocalProducts, getLocalCategories } from '../../services/cacheSync';
 
 const SAMPLE_CSV_HEADERS = 'name,barcode,selling_price,cost_price,wholesale_price,stock_qty,alert_qty,unit';
 const SAMPLE_CSV_ROW     = 'Sample Product,123456,100.00,70.00,80.00,50,5,pcs';
@@ -49,12 +47,6 @@ function printBarcode(product, qty = 1) {
     </script>
   </body></html>`;
 
-  if (window.electronAPI?.printBarcode) {
-    return window.electronAPI.printBarcode(html, { copies: qty })
-      .then(r => { if (r && !r.success) alert('Barcode print failed: ' + (r.error || 'unknown')); })
-      .catch(err => alert('Barcode print error: ' + err.message));
-  }
-
   // Browser fallback
   const win = window.open('', '_blank', 'width=380,height=260');
   if (!win) return Promise.resolve();
@@ -80,10 +72,150 @@ const fmtStock = (qty, unit) => {
   return (Number.isInteger(n) ? n : n.toFixed(2)) + ' ' + (unit || 'pcs');
 };
 
+const CATEGORY_COLORS = [
+  'bg-blue-100 text-blue-700',
+  'bg-violet-100 text-violet-700',
+  'bg-emerald-100 text-emerald-700',
+  'bg-amber-100 text-amber-700',
+  'bg-rose-100 text-rose-700',
+  'bg-cyan-100 text-cyan-700',
+];
+
+/* ── Sales price-list component (read-only, mobile-first) ──────────────── */
+function SalesPriceView({ products, isLoading }) {
+  const [search, setSearch] = useState('');
+  const [activeCategory, setActiveCategory] = useState('All');
+
+  const categories = useMemo(() => {
+    const cats = [...new Set(products.map(p => p.category?.name).filter(Boolean))];
+    return ['All', ...cats];
+  }, [products]);
+
+  const catColorMap = useMemo(() => {
+    const map = {};
+    categories.filter(c => c !== 'All').forEach((c, i) => {
+      map[c] = CATEGORY_COLORS[i % CATEGORY_COLORS.length];
+    });
+    return map;
+  }, [categories]);
+
+  const filtered = useMemo(() => {
+    return products.filter(p => {
+      const matchCat = activeCategory === 'All' || p.category?.name === activeCategory;
+      const matchSearch = !search.trim() ||
+        p.name.toLowerCase().includes(search.toLowerCase());
+      return matchCat && matchSearch;
+    });
+  }, [products, activeCategory, search]);
+
+  return (
+    <div className="p-4 md:p-6 space-y-4 pb-10">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-bold text-slate-800">Products</h1>
+          <p className="text-xs text-slate-400">{filtered.length} products</p>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0"/>
+          </svg>
+        </span>
+        <input
+          type="text"
+          placeholder="Search products…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-full pl-9 pr-9 py-3 border border-slate-300 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white shadow-sm"
+        />
+        {search && (
+          <button onClick={() => setSearch('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {/* Category tabs — scrollable on mobile */}
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap" style={{scrollbarWidth:'none'}}>
+        {categories.map(cat => (
+          <button
+            key={cat}
+            onClick={() => setActiveCategory(cat)}
+            className={`shrink-0 px-4 py-2 rounded-full text-sm font-semibold border transition-colors ${
+              activeCategory === cat
+                ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-orange-300'
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      {/* Loading skeleton */}
+      {isLoading && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl border border-slate-200 p-4 animate-pulse h-28" />
+          ))}
+        </div>
+      )}
+
+      {/* Empty */}
+      {!isLoading && filtered.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+          <svg className="w-12 h-12 mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+          </svg>
+          <p className="text-sm font-medium">No products found</p>
+        </div>
+      )}
+
+      {/* Cards grid */}
+      {!isLoading && filtered.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {filtered.map(p => {
+            const catName = p.category?.name;
+            const catColor = catColorMap[catName] || 'bg-slate-100 text-slate-600';
+            return (
+              <div key={p.id}
+                className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-col gap-2 hover:shadow-md hover:border-orange-200 transition-all">
+                {catName && (
+                  <span className={`self-start text-[10px] font-bold px-2 py-0.5 rounded-full ${catColor}`}>
+                    {catName}
+                  </span>
+                )}
+                <p className="text-sm font-semibold text-slate-800 leading-snug line-clamp-3 flex-1">
+                  {p.name}
+                </p>
+                <div className="pt-2 border-t border-slate-100">
+                  <p className="text-[10px] text-slate-400 mb-0.5">Selling Price</p>
+                  <p className="text-xl font-extrabold text-orange-600 leading-none">
+                    Rs.&nbsp;{fmtPrice(p.selling_price).replace('Rs. ', '')}
+                  </p>
+                  {p.unit && <p className="text-[10px] text-slate-400 mt-0.5">per {p.unit}</p>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ProductsIndex() {
   const { t } = useLocale();
-  const { isOnline } = useConnectivity();
-  const token = useSelector(selectToken);
+  const token    = useSelector(selectToken);
+  const role     = useSelector(selectRole);
+  const readOnly = role === 'sales' || role === 'cashier';
   const searchRef = useRef(null);
   const [exporting, setExporting] = useState(false);
 
@@ -112,16 +244,6 @@ export default function ProductsIndex() {
   const [viewAll, setViewAll]   = useState(() => localStorage.getItem('products_viewAll') === 'true');
   const [applied, setApplied]   = useState({ search: '', category_id: '', low_stock: false, promo: false });
 
-  const [offlineProducts,   setOfflineProducts]   = useState([]);
-  const [offlineCategories, setOfflineCategories] = useState([]);
-
-  useEffect(() => {
-    if (!isOnline) {
-      getLocalProducts().then(setOfflineProducts);
-      getLocalCategories().then(setOfflineCategories);
-    }
-  }, [isOnline]);
-
   const { data, isLoading } = useGetProductsQuery(
     viewAll
       ? { page: 1, limit: 9999, active: '1' }
@@ -132,31 +254,15 @@ export default function ProductsIndex() {
           ...(applied.low_stock   ? { low_stock:   'true' }              : {}),
           ...(applied.promo       ? { promo:       'true' }              : {}),
           page,
-        },
-    { skip: !isOnline }
+        }
   );
-  const { data: categories = [] } = useGetCategoriesQuery(undefined, { skip: !isOnline });
+  const { data: categories = [] } = useGetCategoriesQuery();
   const [deleteProduct]  = useDeleteProductMutation();
   const [updateProduct]  = useUpdateProductMutation();
 
-  const displayCategories = isOnline ? categories : offlineCategories;
-
-  const offlineFiltered = useMemo(() => {
-    if (isOnline) return [];
-    let result = offlineProducts;
-    if (applied.search) {
-      const q = applied.search.toLowerCase();
-      result = result.filter(p => p.name?.toLowerCase().includes(q) || p.barcode?.includes(applied.search));
-    }
-    if (applied.category_id) result = result.filter(p => String(p.category_id) === String(applied.category_id));
-    if (applied.low_stock)   result = result.filter(p => parseFloat(p.stock_qty) <= parseFloat(p.alert_qty || 0));
-    if (applied.promo)       result = result.filter(p => p.promo_price);
-    return result;
-  }, [isOnline, offlineProducts, applied]);
-
-  const serverRows = isOnline ? (data?.data || []) : offlineFiltered;
+  const serverRows = data?.data || [];
   const baseRows = useMemo(() => {
-    if (!viewAll || !isOnline) return serverRows;
+    if (!viewAll) return serverRows;
     let result = serverRows;
     if (applied.search) {
       const q = applied.search.toLowerCase();
@@ -166,7 +272,7 @@ export default function ProductsIndex() {
     if (applied.low_stock)   result = result.filter(p => parseFloat(p.stock_qty) <= parseFloat(p.alert_qty || 0));
     if (applied.promo)       result = result.filter(p => p.promo_price);
     return result;
-  }, [viewAll, isOnline, serverRows, applied]);
+  }, [viewAll, serverRows, applied]);
   const rows = baseRows;
 
   const [printModal,   setPrintModal]   = useState(null);  // { product }
@@ -240,6 +346,10 @@ export default function ProductsIndex() {
     await deleteProduct(id);
   }
 
+  /* ── Sales-only simplified price list view ─────────────────────────── */
+  if (role === 'sales') {
+    return <SalesPriceView products={serverRows} isLoading={isLoading} />;
+  }
 
   return (
     <>
@@ -274,7 +384,7 @@ export default function ProductsIndex() {
           className="rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white max-w-48"
         >
           <option value="">{t('lbl.all')} {t('prod.category')}</option>
-          {displayCategories.map(c => <option key={c.id} value={c.id}>{c.name?.length > 50 ? c.name.slice(0, 50) + '…' : c.name}</option>)}
+          {categories.map(c => <option key={c.id} value={c.id}>{c.name?.length > 50 ? c.name.slice(0, 50) + '…' : c.name}</option>)}
         </select>
 
         {/* All / Low Stock / Promo toggle */}
@@ -314,11 +424,6 @@ export default function ProductsIndex() {
         </div>
 
         <div className="flex items-center gap-2 ml-auto">
-          {!isOnline && (
-            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-xs font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" /> Offline – add/edit disabled
-            </span>
-          )}
           <button
             onClick={() => { setViewAll(v => { localStorage.setItem('products_viewAll', String(!v)); return !v; }); setPage(1); }}
             className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg border transition-colors shadow-sm ${viewAll ? 'bg-slate-800 text-white border-slate-800 hover:bg-slate-700' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'}`}
@@ -338,14 +443,12 @@ export default function ProductsIndex() {
             </svg>
             {exporting ? 'Exporting…' : 'Export CSV'}
           </button>
-          {isOnline && (
-            <Link
-              to="/products/create"
-              className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-            >
-              <span className="text-lg leading-none">+</span> {t('btn.new_product')}
-            </Link>
-          )}
+          <Link
+            to="/products/create"
+            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+          >
+            <span className="text-lg leading-none">+</span> {t('btn.new_product')}
+          </Link>
         </div>
       </div>
 
@@ -361,7 +464,7 @@ export default function ProductsIndex() {
           </div>
         )}
         {!isLoading && rows.length === 0 && (
-          <div className="p-8 text-center text-slate-400 text-sm bg-white rounded-xl border border-slate-100">{isOnline ? t('prod.no_products') : 'No cached products'}</div>
+          <div className="p-8 text-center text-slate-400 text-sm bg-white rounded-xl border border-slate-100">{t('prod.no_products')}</div>
         )}
         {rows.map(p => {
           const isLow = parseFloat(p.stock_qty) <= parseFloat(p.alert_qty);
@@ -412,26 +515,24 @@ export default function ProductsIndex() {
                 </span>
               </div>
               <div className="flex gap-2 pt-2 border-t border-slate-50">
-                <button onClick={() => openPrintModal(p)} disabled={printingIds.has(p.id)}
-                  className="flex-1 py-1.5 text-xs font-semibold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-40 flex items-center justify-center gap-1">
-                  {printingIds.has(p.id)
-                    ? <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                    : <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6v-8z"/></svg>
-                  }
-                  {t('btn.print')}
-                </button>
-                {isOnline && (
+                {!readOnly && <>
+                  <button onClick={() => openPrintModal(p)} disabled={printingIds.has(p.id)}
+                    className="flex-1 py-1.5 text-xs font-semibold text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-40 flex items-center justify-center gap-1">
+                    {printingIds.has(p.id)
+                      ? <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                      : <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6v-8z"/></svg>
+                    }
+                    {t('btn.print')}
+                  </button>
                   <Link to={`/products/${p.id}/edit`}
                     className="flex-1 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-center">
                     {t('btn.edit')}
                   </Link>
-                )}
-                {isOnline && (
                   <button onClick={() => handleDelete(p.id, p.name)}
                     className="flex-1 py-1.5 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
                     {t('btn.delete')}
                   </button>
-                )}
+                </>}
               </div>
             </div>
           );
@@ -517,28 +618,26 @@ export default function ProductsIndex() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button onClick={() => openPrintModal(p)} disabled={printingIds.has(p.id)}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-40">
-                            {printingIds.has(p.id)
-                              ? <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
-                              : <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6v-8z"/></svg>
-                            }
-                            {t('btn.print')}
-                          </button>
-                          {isOnline && (
+                        {!readOnly && (
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button onClick={() => openPrintModal(p)} disabled={printingIds.has(p.id)}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 bg-white text-xs font-medium text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-40">
+                              {printingIds.has(p.id)
+                                ? <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                                : <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6v-8z"/></svg>
+                              }
+                              {t('btn.print')}
+                            </button>
                             <Link to={`/products/${p.id}/edit`}
                               className="inline-flex items-center px-2.5 py-1 rounded-md border border-blue-200 bg-blue-50 text-xs font-medium text-blue-600 hover:bg-blue-100 transition-colors">
                               {t('btn.edit')}
                             </Link>
-                          )}
-                          {isOnline && (
                             <button onClick={() => handleDelete(p.id, p.name)}
                               className="inline-flex items-center px-2.5 py-1 rounded-md border border-red-200 bg-red-50 text-xs font-medium text-red-500 hover:bg-red-100 transition-colors">
                               {t('btn.delete')}
                             </button>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   );

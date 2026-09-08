@@ -37,7 +37,7 @@ if (!tenant) {
 const log  = m => console.log(`\x1b[32m✔\x1b[0m  ${m}`);
 const warn = m => console.log(`\x1b[33m⚠\x1b[0m  ${m}`);
 
-const DEFAULT_ROLES = ['admin', 'manager', 'cashier', 'custom'];
+const DEFAULT_ROLES = ['admin', 'manager', 'cashier', 'custom', 'sales'];
 const DEFAULT_SETTINGS = [
   { key: 'shop_name',        value: '' },
   { key: 'address',          value: '' },
@@ -57,6 +57,7 @@ async function main() {
     { name: 'Admin',   email: 'admin@lumac.lk',   password: '123', role: 'admin' },
     { name: 'Manager', email: 'manager@lumac.lk', password: '123', role: 'manager' },
     { name: 'Cashier', email: 'cashier@lumac.lk', password: '123', role: 'cashier' },
+    { name: 'Sales',   email: 'sales@lumac.lk',   password: '123', role: 'sales' },
   ];
 
   const seq = new Sequelize(tenant.database, tenant.username, tenant.password, {

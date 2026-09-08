@@ -72,6 +72,8 @@ function getModels(sequelize) {
     address:        { type: DataTypes.TEXT, allowNull: true },
     credit_limit:   { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
     credit_balance: { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+    price_level:    { type: DataTypes.ENUM('retail', 'wholesale', 'vip'), defaultValue: 'retail' },
+    payment_terms:  { type: DataTypes.ENUM('cash', 'net_7', 'net_15', 'net_30', 'net_60'), defaultValue: 'cash' },
     active:         { type: DataTypes.BOOLEAN, defaultValue: true },
   }, { tableName: 'customers' });
 
@@ -88,8 +90,10 @@ function getModels(sequelize) {
     total:        { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
     paid:         { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
     balance:      { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
-    status:       { type: DataTypes.ENUM('completed', 'held', 'returned'), defaultValue: 'completed' },
-    note:         { type: DataTypes.TEXT, allowNull: true },
+    status:        { type: DataTypes.ENUM('completed', 'held', 'returned'), defaultValue: 'completed' },
+    note:          { type: DataTypes.TEXT, allowNull: true },
+    notes:         { type: DataTypes.TEXT, allowNull: true },
+    delivery_date: { type: DataTypes.DATEONLY, allowNull: true },
   }, { tableName: 'sales' });
 
   const SaleItem = sequelize.define('SaleItem', {
@@ -167,6 +171,41 @@ function getModels(sequelize) {
     note:        { type: DataTypes.STRING(191), allowNull: true },
   }, { tableName: 'credit_payments' });
 
+  const Area = sequelize.define('Area', {
+    id:          { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    name:        { type: DataTypes.STRING(191), allowNull: false },
+    description: { type: DataTypes.TEXT, allowNull: true },
+  }, { tableName: 'areas' });
+
+  const Delivery = sequelize.define('Delivery', {
+    id:             { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    sale_id:        { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
+    area_id:        { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
+    driver_name:    { type: DataTypes.STRING(191), allowNull: true },
+    status:         { type: DataTypes.ENUM('pending', 'loaded', 'in_transit', 'delivered', 'returned'), defaultValue: 'pending' },
+    notes:          { type: DataTypes.TEXT, allowNull: true },
+    return_note:    { type: DataTypes.TEXT, allowNull: true },
+    scheduled_date: { type: DataTypes.DATEONLY, allowNull: true },
+  }, { tableName: 'deliveries' });
+
+  const PurchaseReturn = sequelize.define('PurchaseReturn', {
+    id:          { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    purchase_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    ref_no:      { type: DataTypes.STRING(191), allowNull: true },
+    reason:      { type: DataTypes.TEXT, allowNull: false },
+    total:       { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+  }, { tableName: 'purchase_returns' });
+
+  const PurchaseReturnItem = sequelize.define('PurchaseReturnItem', {
+    id:                 { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    purchase_return_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    product_id:         { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
+    product_name:       { type: DataTypes.STRING(191), allowNull: false },
+    qty:                { type: DataTypes.DECIMAL(10, 3), allowNull: false },
+    cost_price:         { type: DataTypes.DECIMAL(10, 2), allowNull: false },
+    total:              { type: DataTypes.DECIMAL(10, 2), allowNull: false },
+  }, { tableName: 'purchase_return_items' });
+
   const Setting = sequelize.define('Setting', {
     id:    { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
     key:   { type: DataTypes.STRING(191), allowNull: false, unique: true },
@@ -199,6 +238,10 @@ function getModels(sequelize) {
   Purchase.belongsTo(Supplier, { foreignKey: 'supplier_id', as: 'supplier' });
   Purchase.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
   Purchase.hasMany(PurchaseItem, { foreignKey: 'purchase_id', as: 'items' });
+  Purchase.hasMany(PurchaseReturn, { foreignKey: 'purchase_id', as: 'returns' });
+  PurchaseReturn.belongsTo(Purchase, { foreignKey: 'purchase_id', as: 'purchase' });
+  PurchaseReturn.hasMany(PurchaseReturnItem, { foreignKey: 'purchase_return_id', as: 'items' });
+  PurchaseReturnItem.belongsTo(PurchaseReturn, { foreignKey: 'purchase_return_id', as: 'purchaseReturn' });
 
   Customer.hasMany(CreditPayment, { foreignKey: 'customer_id', as: 'creditPayments' });
   Customer.hasMany(Sale, { foreignKey: 'customer_id', as: 'sales' });
@@ -211,10 +254,15 @@ function getModels(sequelize) {
   User.belongsToMany(Feature, { through: 'user_features', foreignKey: 'user_id', otherKey: 'feature_id', as: 'DirectFeatures', timestamps: false });
   Feature.belongsToMany(User, { through: 'user_features', foreignKey: 'feature_id', otherKey: 'user_id', as: 'DirectUsers', timestamps: false });
 
+  Delivery.belongsTo(Sale, { foreignKey: 'sale_id', as: 'sale' });
+  Delivery.belongsTo(Area, { foreignKey: 'area_id', as: 'area' });
+  Sale.hasMany(Delivery,   { foreignKey: 'sale_id', as: 'deliveries' });
+
   return {
     User, Role, Category, Product, ProductVariant,
     Supplier, Customer, Sale, SaleItem, Payment, SaleReturn,
-    Purchase, PurchaseItem, StockMovement, CreditPayment, Setting, Feature,
+    Purchase, PurchaseItem, PurchaseReturn, PurchaseReturnItem, StockMovement, CreditPayment, Setting, Feature,
+    Area, Delivery,
   };
 }
 

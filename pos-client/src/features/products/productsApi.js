@@ -1,5 +1,4 @@
 import { api } from '../../app/baseApi';
-import { refreshProductCache } from '../../hooks/useProductCache';
 
 export const productsApi = api.injectEndpoints({
   endpoints: build => ({
@@ -19,23 +18,14 @@ export const productsApi = api.injectEndpoints({
     createProduct: build.mutation({
       query: body => ({ url: '/products', method: 'POST', body }),
       invalidatesTags: [{ type: 'Products', id: 'LIST' }],
-      onQueryStarted: async (_, { queryFulfilled }) => {
-        try { await queryFulfilled; refreshProductCache(); } catch {}
-      },
     }),
     updateProduct: build.mutation({
       query: ({ id, ...body }) => ({ url: `/products/${id}`, method: 'PUT', body }),
       invalidatesTags: (r, e, { id }) => [{ type: 'Products', id }, { type: 'Products', id: 'LIST' }],
-      onQueryStarted: async (_, { queryFulfilled }) => {
-        try { await queryFulfilled; refreshProductCache(); } catch {}
-      },
     }),
     deleteProduct: build.mutation({
       query: id => ({ url: `/products/${id}`, method: 'DELETE' }),
       invalidatesTags: [{ type: 'Products', id: 'LIST' }],
-      onQueryStarted: async (_, { queryFulfilled }) => {
-        try { await queryFulfilled; refreshProductCache(); } catch {}
-      },
     }),
     getCategories: build.query({
       query: () => '/categories',
@@ -49,16 +39,10 @@ export const productsApi = api.injectEndpoints({
     importProducts: build.mutation({
       query: body => ({ url: '/products/import', method: 'POST', body }),
       invalidatesTags: [{ type: 'Products', id: 'LIST' }],
-      onQueryStarted: async (_, { queryFulfilled }) => {
-        try { await queryFulfilled; refreshProductCache(); } catch {}
-      },
     }),
     truncateProducts: build.mutation({
       query: () => ({ url: '/products/truncate', method: 'POST', body: { confirm: 'TRUNCATE_PRODUCTS' } }),
       invalidatesTags: [{ type: 'Products', id: 'LIST' }],
-      onQueryStarted: async (_, { queryFulfilled }) => {
-        try { await queryFulfilled; refreshProductCache(); } catch {}
-      },
     }),
   }),
 });

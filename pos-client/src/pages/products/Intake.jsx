@@ -4,7 +4,6 @@ import { useGetProductsQuery, useUpdateProductMutation, useCreateProductMutation
 import { useSelector } from 'react-redux';
 import { selectToken } from '../../features/auth/authSlice';
 import { getApiUrl } from '../../config/runtimeConfig';
-import { clearProductCache } from '../../hooks/useProductCache';
 
 const API = getApiUrl();
 
@@ -133,7 +132,6 @@ export default function ProductIntake() {
       name_si:       form.name_si || null,
       active:        true,
     }).unwrap();
-    clearProductCache();
     setSavedCount(c => c + 1);
     setLastSaved(product.name);
     reset();
@@ -153,7 +151,6 @@ export default function ProductIntake() {
         unit:          qcForm.unit || 'pcs',
         active:        true,
       }).unwrap();
-      clearProductCache();
       setNotFound(false);
       setQcOpen(false);
       setQcForm(EMPTY_QC);

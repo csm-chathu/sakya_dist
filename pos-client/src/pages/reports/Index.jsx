@@ -11,6 +11,7 @@ import {
   useGetReportStockSummaryQuery,
   useGetReportRevenueQuery,
   useGetReportStockMovementsQuery,
+  useGetReportCreditPaymentsQuery,
 } from '../../features/reports/reportsApi';
 
 const fmt     = n => 'Rs. ' + Number(n || 0).toLocaleString('en-LK', { minimumFractionDigits: 2 });
@@ -601,6 +602,71 @@ function CreditCustomers() {
   );
 }
 
+// ─── Tab: Credit Payments ──────────────────────────────────────────────────────
+function CreditPayments() {
+  const { t } = useLocale();
+  const fmt = n => 'Rs. ' + Number(n || 0).toLocaleString('en-LK', { minimumFractionDigits: 2 });
+  const todayStr = () => new Date().toISOString().slice(0, 10);
+  const [from, setFrom] = useState(todayStr());
+  const [to, setTo]     = useState(todayStr());
+  const { data, isLoading } = useGetReportCreditPaymentsQuery({ from, to });
+  const { payments = [], total = 0 } = data || {};
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-3 items-end">
+        <div>
+          <p className="text-xs font-semibold text-slate-500 mb-1">From</p>
+          <input type="date" value={from} onChange={e => setFrom(e.target.value)}
+            className="border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400" />
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-slate-500 mb-1">To</p>
+          <input type="date" value={to} onChange={e => setTo(e.target.value)}
+            className="border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400" />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <SummaryCard label="Payments" value={payments.length} />
+        <SummaryCard label="Total Collected" value={fmt(total)} color="text-green-600" />
+      </div>
+      {isLoading ? <Spin /> : (
+        <TableWrap title={`Credit Payments (${payments.length})`}>
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wider">
+              <tr>
+                <Th>Ref No</Th>
+                <Th>Customer</Th>
+                <Th>Phone</Th>
+                <Th>Note</Th>
+                <Th>Collected By</Th>
+                <Th>Date</Th>
+                <Th right>Amount</Th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {payments.map(p => (
+                <tr key={p.id} className="hover:bg-slate-50">
+                  <td className="px-4 py-2.5 font-mono text-xs text-slate-400">{p.invoice_no || `#${p.id}`}</td>
+                  <td className="px-4 py-2.5 font-medium text-slate-800">{p.customer?.name || '—'}</td>
+                  <td className="px-4 py-2.5 text-slate-500">{p.customer?.phone || '—'}</td>
+                  <td className="px-4 py-2.5 text-slate-500 italic">{p.note || '—'}</td>
+                  <td className="px-4 py-2.5 text-slate-500">{p.user?.name || '—'}</td>
+                  <td className="px-4 py-2.5 text-slate-400 text-xs">{new Date(p.created_at).toLocaleDateString('en-LK', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                  <td className="px-4 py-2.5 text-right font-semibold text-green-600">{fmt(p.amount)}</td>
+                </tr>
+              ))}
+              {!payments.length && (
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400">No credit payments in this period.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </TableWrap>
+      )}
+    </div>
+  );
+}
+
 // ─── Tab: Stock Movements ───────────────────────────────────────────────────────
 const TYPE_BADGE = {
   in:         'bg-green-100 text-green-700',
@@ -719,7 +785,8 @@ const TAB_ICONS = {
   top:      <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 0 0 .95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 0 0-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 0 0-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 0 0-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 0 0 .951-.69l1.519-4.674z"/></svg>,
   lowstock: <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>,
   stock:    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>,
-  credit:   <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3z"/></svg>,
+  credit:          <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3z"/></svg>,
+  credit_payments: <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>,
   movements:<svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>,
 };
 
@@ -737,8 +804,9 @@ export default function Reports() {
     { id: 'top',      label: t('rep.top_products') },
     { id: 'lowstock', label: t('rep.low_stock') },
     { id: 'stock',    label: t('rep.stock_summary') },
-    { id: 'credit',    label: t('rep.credit') },
-    { id: 'movements', label: 'Stock Movements' },
+    { id: 'credit',          label: t('rep.credit') },
+    { id: 'credit_payments', label: 'Credit Payments' },
+    { id: 'movements',       label: 'Stock Movements' },
   ];
 
   return (
@@ -787,8 +855,9 @@ export default function Reports() {
         {tab === 'top'      && <TopProducts />}
         {tab === 'lowstock' && <LowStock />}
         {tab === 'stock'    && <StockSummary />}
-        {tab === 'credit'    && <CreditCustomers />}
-        {tab === 'movements' && <StockMovements />}
+        {tab === 'credit'          && <CreditCustomers />}
+        {tab === 'credit_payments' && <CreditPayments />}
+        {tab === 'movements'       && <StockMovements />}
       </div>
     </div>
   );

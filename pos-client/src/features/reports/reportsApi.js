@@ -24,6 +24,8 @@ export const reportsApi = api.injectEndpoints({
       return `/reports/stock-movements?${q}`;
     }}),
     getReportDailySales: b.query({ query: p => `/reports/daily-sales?date_from=${p.from}&date_to=${p.to}` }),
+    getReportAging:          b.query({ query: () => '/reports/aging' }),
+    getReportCreditPayments: b.query({ query: p => `/reports/credit-payments?from=${p.from}&to=${p.to}` }),
   }),
 });
 
@@ -39,4 +41,6 @@ export const {
   useGetReportRevenueQuery,
   useGetReportStockMovementsQuery,
   useGetReportDailySalesQuery,
+  useGetReportAgingQuery,
+  useGetReportCreditPaymentsQuery,
 } = reportsApi;

@@ -8,7 +8,7 @@ import { useSelector } from 'react-redux';
 import { selectCurrentUser, selectRole } from '../../features/auth/authSlice';
 import { useLocale } from '../../contexts/LocaleContext';
 
-const ROLES = ['admin', 'manager', 'cashier', 'custom'];
+const ROLES = ['admin', 'manager', 'cashier', 'sales', 'custom'];
 const empty = { name: '', email: '', password: '', role: 'cashier' };
 
 // ── Feature assignment modal ────────────────────────────────────────────────
@@ -163,7 +163,7 @@ export default function UsersIndex() {
   const set = f => e => setForm(p => ({ ...p, [f]: e.target.value }));
 
   const roleBadge = role => {
-    const cls = { admin: 'bg-red-100 text-red-700', manager: 'bg-blue-100 text-blue-700', cashier: 'bg-green-100 text-green-700', custom: 'bg-indigo-100 text-indigo-700' };
+    const cls = { admin: 'bg-red-100 text-red-700', manager: 'bg-blue-100 text-blue-700', cashier: 'bg-green-100 text-green-700', sales: 'bg-sky-100 text-sky-700', custom: 'bg-indigo-100 text-indigo-700' };
     return <span className={`text-xs px-2 py-0.5 rounded-full font-semibold capitalize ${cls[role] || 'bg-slate-100 text-slate-600'}`}>{role}</span>;
   };
 

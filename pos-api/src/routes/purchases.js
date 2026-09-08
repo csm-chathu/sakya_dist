@@ -67,6 +67,58 @@ router.get('/:id', auth, async (req, res) => {
   res.json(purchase);
 });
 
+// GET /purchases/:id/returns
+router.get('/:id/returns', auth, async (req, res) => {
+  const { PurchaseReturn, PurchaseReturnItem } = req.models;
+  const returns = await PurchaseReturn.findAll({
+    where: { purchase_id: req.params.id },
+    include: [{ model: PurchaseReturnItem, as: 'items' }],
+    order: [['id', 'DESC']],
+  });
+  res.json(returns);
+});
+
+// POST /purchases/:id/return
+router.post('/:id/return', auth, role('admin', 'manager'), async (req, res) => {
+  const { Purchase, PurchaseReturn, PurchaseReturnItem, Product, StockMovement } = req.models;
+  const { reason, items = [] } = req.body;
+  if (!reason?.trim()) return res.status(422).json({ error: 'Reason is required' });
+  const validItems = items.filter(i => parseFloat(i.qty) > 0);
+  if (!validItems.length) return res.status(422).json({ error: 'Enter return qty for at least one item' });
+
+  const purchase = await Purchase.findByPk(req.params.id);
+  if (!purchase) return res.status(404).json({ error: 'Not found' });
+
+  const lastReturn = await PurchaseReturn.findOne({ order: [['id', 'DESC']], attributes: ['ref_no'] });
+  const refNum = parseInt(lastReturn?.ref_no?.replace('PRN-', '') || '0') + 1;
+  const ref_no = `PRN-${String(refNum).padStart(4, '0')}`;
+
+  const total = validItems.reduce((s, i) => s + parseFloat(i.cost_price) * parseFloat(i.qty), 0);
+  const ret   = await PurchaseReturn.create({ purchase_id: purchase.id, reason: reason.trim(), total, ref_no });
+
+  for (const item of validItems) {
+    const qty  = parseFloat(item.qty);
+    const cost = parseFloat(item.cost_price);
+    await PurchaseReturnItem.create({
+      purchase_return_id: ret.id,
+      product_id: item.product_id,
+      product_name: item.product_name,
+      qty, cost_price: cost, total: qty * cost,
+    });
+    const product = await Product.findByPk(item.product_id);
+    if (product) {
+      const before = parseFloat(product.stock_qty);
+      const after  = Math.max(0, before - qty);
+      await product.update({ stock_qty: after });
+      await StockMovement.create({
+        product_id: product.id, user_id: req.user.id, type: 'out',
+        qty, stock_before: before, stock_after: after, reference: ref_no,
+      });
+    }
+  }
+  res.status(201).json(ret);
+});
+
 router.delete('/:id', auth, role('admin'), async (req, res) => {
   const { Purchase } = req.models;
   const p = await Purchase.findByPk(req.params.id);

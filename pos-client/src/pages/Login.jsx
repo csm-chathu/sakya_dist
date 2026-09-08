@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { useLoginMutation } from '../features/auth/authApi';
 import { setCredentials } from '../features/auth/authSlice';
+import { api } from '../app/baseApi';
 import { getApiUrl } from '../config/runtimeConfig';
 
 const API = getApiUrl();
@@ -90,8 +91,9 @@ export default function Login() {
         // Cache credentials for future offline use
         const hash = await hashCreds(form.email, form.password);
         saveOfflineCreds(hash, res, appInfo);
+        dispatch(api.util.resetApiState()); // clear cached /me from previous session
         dispatch(setCredentials(res));
-        navigate('/dashboard');
+        navigate(res.user?.role === 'sales' ? '/products' : '/dashboard');
         return;
       } catch (err) {
         // Network error → fall through to offline check
@@ -110,7 +112,7 @@ export default function Login() {
       const hash = await hashCreds(form.email, form.password);
       if (hash !== stored.hash) { setError('Incorrect email or password'); return; }
       dispatch(setCredentials(stored.auth));
-      navigate('/dashboard');
+      navigate(stored.auth.user?.role === 'sales' ? '/products' : '/dashboard');
     } catch {
       setError('Offline login failed');
     }

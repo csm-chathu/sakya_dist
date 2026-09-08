@@ -168,14 +168,16 @@ function HourlyChart({ hourlySales, dates }) {
 }
 
 // ─── Quick Action Button ──────────────────────────────────────────────────────
-function QuickBtn({ label, icon, color, onClick }) {
+function QuickBtn({ label, icon, color, accent, onClick }) {
   return (
     <button onClick={onClick}
-      className={`relative flex-1 flex flex-col items-center justify-center py-8 rounded-2xl text-white font-bold text-sm shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] ${color}`}>
-      <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center mb-2">
+      className={`group relative flex-1 flex flex-col items-center justify-center gap-3 py-7 px-4 rounded-2xl text-white font-semibold shadow-md transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.97] overflow-hidden ${color}`}>
+      {/* subtle top-right glow */}
+      <div className={`absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-20 ${accent}`} />
+      <div className="relative z-10 w-11 h-11 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center ring-1 ring-white/20 group-hover:bg-white/25 transition-colors">
         {icon}
       </div>
-      <span className="text-base font-bold">{label}</span>
+      <span className="relative z-10 text-sm font-bold tracking-wide">{label}</span>
     </button>
   );
 }
@@ -448,10 +450,10 @@ export default function Dashboard() {
 
       {/* ── Quick Actions ────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <QuickBtn label={t('btn.new_sale')}     icon={icons.pos}      color="bg-[#1E40AF] hover:bg-blue-900"       onClick={() => navigate('/sales/create')} />
-        <QuickBtn label={t('btn.new_product')}  icon={icons.product}  color="bg-purple-700 hover:bg-purple-800"    onClick={() => navigate('/products/create')} />
-        <QuickBtn label={t('btn.new_purchase')} icon={icons.purchase} color="bg-[#15803D] hover:bg-green-900"      onClick={() => navigate('/purchases/create')} />
-        <QuickBtn label={t('btn.report')}       icon={icons.report}   color="bg-orange-600 hover:bg-orange-700"    onClick={() => navigate('/reports')} />
+        <QuickBtn label={t('btn.new_sale')}     icon={icons.pos}      color="bg-gradient-to-br from-blue-600 to-blue-800"         accent="bg-blue-300"   onClick={() => navigate('/sales/create')} />
+        <QuickBtn label={t('btn.new_product')}  icon={icons.product}  color="bg-gradient-to-br from-violet-600 to-violet-800"      accent="bg-violet-300" onClick={() => navigate('/products/create')} />
+        <QuickBtn label={t('btn.new_purchase')} icon={icons.purchase} color="bg-gradient-to-br from-emerald-600 to-emerald-800"    accent="bg-emerald-300"onClick={() => navigate('/purchases/create')} />
+        <QuickBtn label={t('btn.report')}       icon={icons.report}   color="bg-gradient-to-br from-slate-600 to-slate-800"        accent="bg-slate-400"  onClick={() => navigate('/reports')} />
       </div>
 
       {/* ── Bottom: Recent Sales + Fast Moving ───────────────────────────── */}

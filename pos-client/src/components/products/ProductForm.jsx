@@ -4,8 +4,6 @@ import { useSelector } from 'react-redux';
 import { selectToken } from '../../features/auth/authSlice';
 import { useGetCategoriesQuery } from '../../features/products/productsApi';
 import { useLocale } from '../../contexts/LocaleContext';
-import { useConnectivity } from '../../contexts/ConnectivityContext';
-import { getLocalCategories } from '../../services/cacheSync';
 import { getApiUrl } from '../../config/runtimeConfig';
 
 const API    = getApiUrl();
@@ -26,10 +24,7 @@ function Toggle({ checked, onChange }) {
 }
 
 export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
-  const { isOnline } = useConnectivity();
-  const { data: serverCategories = [] } = useGetCategoriesQuery(undefined, { skip: !isOnline });
-  const [localCategories, setLocalCategories] = useState([]);
-  const categories = isOnline ? serverCategories : localCategories;
+  const { data: categories = [] } = useGetCategoriesQuery();
 
   const { t } = useLocale();
   const token = useSelector(selectToken);
@@ -77,10 +72,6 @@ export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
   const focusNext = (nextRef) => (e) => {
     if (e.key === 'Enter') { e.preventDefault(); nextRef.current?.focus(); }
   };
-
-  useEffect(() => {
-    if (!isOnline) getLocalCategories().then(setLocalCategories);
-  }, [isOnline]);
 
   useEffect(() => {
     if (!categories.length || initial.category_id) return;
@@ -137,7 +128,7 @@ export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
   function setVariant(i, k, val) { setVariants(v => v.map((vv, idx) => idx === i ? { ...vv, [k]: val } : vv)); }
 
   async function checkBarcodeUnique(val) {
-    if (!val || !isOnline) return;
+    if (!val) return;
     try {
       const res = await fetch(`${API}/api/products/search?barcode=${encodeURIComponent(val)}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -417,96 +408,24 @@ export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
               <input type="date" {...register('expiry_date')} className={inp} />
             </div>
 
-            {/* Promotional Price */}
-            <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 space-y-3">
-              <p className="text-xs font-bold text-orange-500 uppercase tracking-widest">{t('prod.promo_section')}</p>
-              <div>
-                <label className="block text-sm font-medium text-orange-600 mb-1.5">{t('prod.promo_price')}</label>
-                <input type="number" min="0" step="0.01"
-                  {...register('promo_price')}
-                  onFocus={e => e.target.select()} placeholder="0.00"
-                  className="w-full rounded-lg border border-orange-300 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition" />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-orange-600 mb-1.5">{t('prod.promo_start')}</label>
-                  <input type="date" {...register('promo_start_date')}
-                    className="w-full rounded-lg border border-orange-300 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-400 transition" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-orange-600 mb-1.5">{t('prod.promo_end')}</label>
-                  <input type="date" {...register('promo_end_date')}
-                    className="w-full rounded-lg border border-orange-300 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-orange-400 transition" />
-                </div>
-              </div>
-              <p className="text-xs text-slate-400">{t('prod.promo_note')}</p>
+            <div className="flex justify-end gap-3 pt-2">
+              <button type="submit" disabled={uploading || saving || isSaving}
+                className="px-10 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:opacity-70 transition-colors shadow-md shadow-blue-600/20 flex items-center gap-2">
+                {(uploading || saving || isSaving) && (
+                  <svg className="w-4 h-4 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                  </svg>
+                )}
+                {uploading ? 'Uploading…' : (saving || isSaving) ? 'Saving…' : t('btn.save')}
+              </button>
+              <button type="button" onClick={() => history.back()}
+                className="px-8 py-3 rounded-xl border border-slate-300 text-slate-600 font-medium hover:bg-slate-50 transition-colors">
+                {t('btn.cancel')}
+              </button>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* ── Sizes / Variants ─────────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mb-5">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h2 className="text-sm font-bold text-slate-700">{t('prod.sizes')}</h2>
-            <p className="text-xs text-slate-400 mt-0.5">{t('prod.sizes_hint')}</p>
-          </div>
-          <button type="button" onClick={addVariant}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-blue-400 text-blue-600 text-sm font-semibold hover:bg-blue-50 transition-colors">
-            + {t('prod.add_size')}
-          </button>
-        </div>
-
-        {variants.length === 0 ? (
-          <div className="rounded-xl border-2 border-dashed border-slate-200 py-8 text-center text-sm text-slate-400">
-            {t('prod.no_sizes')}
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {variants.map((v, i) => (
-              <div key={i} className="grid grid-cols-2 md:grid-cols-5 gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
-                {[
-                  [t('prod.size_label') + ' *', 'label',             'text',   'e.g. 500ml'],
-                  [t('prod.barcode'),            'barcode',           'text',   ''],
-                  [t('prod.sell_price'),         'selling_price',     'number', '0.00'],
-                  [t('prod.wholesale_price'),    'wholesale_price',   'number', '0.00'],
-                  [t('prod.conv_factor'),        'conversion_factor', 'number', '1'],
-                ].map(([label, key, type, ph]) => (
-                  <div key={key}>
-                    <label className="text-xs font-semibold text-slate-500 mb-1 block">{label}</label>
-                    <input type={type} value={v[key]} placeholder={ph}
-                      onChange={e => setVariant(i, key, e.target.value)}
-                      onFocus={e => type === 'number' && e.target.select()}
-                      className="w-full rounded-lg border border-slate-200 px-2 py-2 text-sm outline-none focus:ring-1 focus:ring-blue-400 bg-white" />
-                  </div>
-                ))}
-                <div className="md:col-span-5 flex justify-end">
-                  <button type="button" onClick={() => removeVariant(i)}
-                    className="text-xs text-red-500 hover:text-red-700 font-medium">{t('prod.remove')}</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ── Save / Cancel ─────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-4">
-        <button type="submit" disabled={uploading || saving || isSaving}
-          className="py-3 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-70 transition-colors shadow-md shadow-blue-600/20 flex items-center justify-center gap-2">
-          {(uploading || saving || isSaving) && (
-            <svg className="w-4 h-4 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-            </svg>
-          )}
-          {uploading ? 'Uploading…' : (saving || isSaving) ? 'Saving…' : t('btn.save')}
-        </button>
-        <button type="button" onClick={() => history.back()}
-          className="py-3 rounded-xl text-slate-500 text-sm font-medium hover:bg-slate-100 transition-colors">
-          {t('btn.cancel')}
-        </button>
       </div>
     </form>
   );

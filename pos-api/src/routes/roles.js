@@ -3,20 +3,24 @@ const auth   = require('../middleware/auth');
 const role   = require('../middleware/role');
 
 const DEFAULT_FEATURES = [
-  { key: 'dashboard',  label: 'Dashboard',   path: '/dashboard',    group: 'main', sort_order: 1 },
-  { key: 'new_sale',   label: 'New Sale',     path: '/sales/create', group: 'main', sort_order: 2 },
-  { key: 'sales',      label: 'Sales',        path: '/sales',        group: 'main', sort_order: 3 },
-  { key: 'invoices',   label: 'Invoices',     path: '/invoices',     group: 'main', sort_order: 4 },
-  { key: 'products',      label: 'Products',      path: '/products',         group: 'main', sort_order: 5 },
-  { key: 'stock_intake', label: 'Stock Intake',  path: '/products/intake',  group: 'main', sort_order: 6 },
-  { key: 'purchases',    label: 'Purchases',     path: '/purchases',        group: 'main', sort_order: 7 },
-  { key: 'customers',  label: 'Customers',    path: '/customers',    group: 'main', sort_order: 7 },
-  { key: 'credit',     label: 'Credit Book',  path: '/credit',       group: 'main', sort_order: 8 },
-  { key: 'suppliers',  label: 'Suppliers',    path: '/suppliers',    group: 'main', sort_order: 9 },
-  { key: 'categories', label: 'Categories',   path: '/categories',   group: 'main', sort_order: 10 },
-  { key: 'reports',    label: 'Reports',      path: '/reports',      group: 'mgmt', sort_order: 11 },
-  { key: 'users',      label: 'Users',        path: '/users',        group: 'mgmt', sort_order: 12 },
-  { key: 'settings',   label: 'Settings',     path: '/settings',     group: 'mgmt', sort_order: 13 },
+  { key: 'dashboard',        label: 'Dashboard',        path: '/dashboard',          group: 'main', sort_order: 1  },
+  { key: 'new_sale',         label: 'New Sale',          path: '/sales/create',       group: 'main', sort_order: 2  },
+  { key: 'sales',            label: 'Sales',             path: '/sales',              group: 'main', sort_order: 3  },
+  { key: 'deliveries',       label: 'Deliveries',        path: '/deliveries',         group: 'main', sort_order: 4  },
+  { key: 'areas',            label: 'Areas',             path: '/areas',              group: 'main', sort_order: 5  },
+  { key: 'invoices',         label: 'Day End',           path: '/invoices',           group: 'main', sort_order: 6  },
+  { key: 'products',         label: 'Products',          path: '/products',           group: 'main', sort_order: 7  },
+  { key: 'stock_intake',     label: 'Stock Intake',      path: '/products/intake',    group: 'main', sort_order: 8  },
+  { key: 'purchases',        label: 'Purchases',         path: '/purchases',          group: 'main', sort_order: 9  },
+  { key: 'customers',        label: 'Customers',         path: '/customers',          group: 'main', sort_order: 10 },
+  { key: 'credit',           label: 'Credit Book',       path: '/credit',             group: 'main', sort_order: 11 },
+  { key: 'suppliers',        label: 'Suppliers',         path: '/suppliers',          group: 'main', sort_order: 12 },
+  { key: 'categories',       label: 'Categories',        path: '/categories',         group: 'main', sort_order: 13 },
+  { key: 'reports',          label: 'Reports',           path: '/reports',            group: 'mgmt', sort_order: 14 },
+  { key: 'users',            label: 'Users',             path: '/users',              group: 'mgmt', sort_order: 15 },
+  { key: 'settings',         label: 'Settings',          path: '/settings',           group: 'mgmt', sort_order: 16 },
+  { key: 'data_import',      label: 'Data Import',       path: '/admin/data-import',  group: 'mgmt', sort_order: 17 },
+  { key: 'role_permissions', label: 'Role Permissions',  path: '/settings/roles',     group: 'mgmt', sort_order: 18 },
 ];
 
 async function ensureFeatures(Feature) {

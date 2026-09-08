@@ -1,39 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import {
   useGetSuppliersQuery, useCreateSupplierMutation,
   useUpdateSupplierMutation, useDeleteSupplierMutation,
 } from '../../features/suppliers/suppliersApi';
 import { useLocale } from '../../contexts/LocaleContext';
-import { useConnectivity } from '../../contexts/ConnectivityContext';
-import { getLocalSuppliers } from '../../services/cacheSync';
-import { enqueueSupplierCreate, enqueueSupplierEdit, getPendingQueueByTypes } from '../../services/offlineQueue';
 import ConfirmModal from '../../components/ConfirmModal';
 
 const empty = { name: '', phone: '', email: '', address: '', active: true };
 
 export default function SuppliersIndex() {
   const { t } = useLocale();
-  const { isOnline } = useConnectivity();
   const [modal, setModal]   = useState(null);
   const [err, setErr]       = useState('');
   const [saving, setSaving] = useState(false);
-  const [offlineSuppliers, setOfflineSuppliers] = useState([]);
-  const [pendingSuppliers, setPendingSuppliers] = useState([]);
   const [confirmDelete, setConfirmDelete] = useState(null);
 
   const { register, handleSubmit: rhfSubmit, formState: { errors }, reset } = useForm({ defaultValues: empty });
 
-  const loadPending = () => getPendingQueueByTypes(['supplier_create']).then(setPendingSuppliers);
-
-  useEffect(() => {
-    if (!isOnline) getLocalSuppliers().then(setOfflineSuppliers);
-    loadPending();
-  }, [isOnline]);
-
-  const { data: serverSuppliers = [], isLoading, refetch } = useGetSuppliersQuery(undefined, { skip: !isOnline });
-  const baseSuppliers = isOnline ? serverSuppliers : offlineSuppliers;
-  const suppliers = [...pendingSuppliers, ...baseSuppliers.filter(s => !pendingSuppliers.some(p => p.id === s.id))];
+  const { data: suppliers = [], isLoading, refetch } = useGetSuppliersQuery();
   const [create, { isLoading: creating }] = useCreateSupplierMutation();
   const [update, { isLoading: updating }] = useUpdateSupplierMutation();
   const [del]                             = useDeleteSupplierMutation();
@@ -46,21 +31,9 @@ export default function SuppliersIndex() {
     setErr('');
     setSaving(true);
     try {
-      if (isOnline) {
-        if (modal?.edit) await update({ id: modal.edit.id, ...data }).unwrap();
-        else await create(data).unwrap();
-        refetch();
-      } else {
-        if (modal?.edit) {
-          await enqueueSupplierEdit(modal.edit.id, data);
-          setOfflineSuppliers(prev => prev.map(s =>
-            s.id === modal.edit.id ? { ...s, ...data } : s
-          ));
-        } else {
-          await enqueueSupplierCreate(data);
-          await loadPending();
-        }
-      }
+      if (modal?.edit) await update({ id: modal.edit.id, ...data }).unwrap();
+      else await create(data).unwrap();
+      refetch();
       close();
     } catch (e) { setErr(e?.data?.error || 'Failed'); }
     finally { setSaving(false); }
@@ -80,16 +53,9 @@ export default function SuppliersIndex() {
     <div className="p-3 sm:p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-slate-800">{t('page.suppliers')}</h1>
-        <div className="flex items-center gap-2">
-          {!isOnline && (
-            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-xs font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Offline
-            </span>
-          )}
-          <button onClick={openCreate} className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">
-            + {t('btn.add')} {t('pur.supplier')}
-          </button>
-        </div>
+        <button onClick={openCreate} className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+          + {t('btn.add')} {t('pur.supplier')}
+        </button>
       </div>
 
       {/* Mobile cards */}
@@ -102,7 +68,6 @@ export default function SuppliersIndex() {
           <div key={s.id} className="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
             <div className="flex items-start justify-between mb-1">
               <p className="font-semibold text-slate-800">{s.name}</p>
-              {(s._offline || s._pending) && <span className="text-[10px] text-amber-600 font-medium">Pending sync</span>}
             </div>
             <div className="flex gap-4 text-xs text-slate-500 mb-3">
               <span>{s.phone || '—'}</span>
@@ -114,12 +79,10 @@ export default function SuppliersIndex() {
                 className="flex-1 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
                 {t('btn.edit')}
               </button>
-              {isOnline && (
-                <button onClick={() => handleDelete(s)}
-                  className="flex-1 py-1.5 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
-                  {t('btn.delete')}
-                </button>
-              )}
+              <button onClick={() => handleDelete(s)}
+                className="flex-1 py-1.5 text-xs font-semibold text-red-500 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
+                {t('btn.delete')}
+              </button>
             </div>
           </div>
         ))}
@@ -141,17 +104,14 @@ export default function SuppliersIndex() {
             <tbody>
               {suppliers.map(s => (
                 <tr key={s.id} className="odd:bg-white even:bg-slate-50 hover:bg-blue-50 border-b border-slate-100 transition-colors">
-                  <td className="px-4 py-3 font-medium text-slate-800">
-                    {s.name}
-                    {(s._offline || s._pending) && <span className="ml-2 text-[10px] text-amber-600 font-medium">Pending sync</span>}
-                  </td>
+                  <td className="px-4 py-3 font-medium text-slate-800">{s.name}</td>
                   <td className="px-4 py-3 text-slate-500">{s.phone || '—'}</td>
                   <td className="px-4 py-3 text-slate-500">{s.email || '—'}</td>
                   <td className="px-4 py-3 text-slate-500 max-w-xs truncate">{s.address || '—'}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       <button onClick={() => openEdit(s)} className="inline-flex items-center px-2.5 py-1 rounded-md border border-blue-200 bg-blue-50 text-xs font-medium text-blue-600 hover:bg-blue-100 transition-colors">{t('btn.edit')}</button>
-                      {isOnline && <button onClick={() => handleDelete(s)} className="inline-flex items-center px-2.5 py-1 rounded-md border border-red-200 bg-red-50 text-xs font-medium text-red-500 hover:bg-red-100 transition-colors">{t('btn.delete')}</button>}
+                      <button onClick={() => handleDelete(s)} className="inline-flex items-center px-2.5 py-1 rounded-md border border-red-200 bg-red-50 text-xs font-medium text-red-500 hover:bg-red-100 transition-colors">{t('btn.delete')}</button>
                     </div>
                   </td>
                 </tr>
@@ -173,12 +133,6 @@ export default function SuppliersIndex() {
               </h2>
               <button onClick={close} className="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
             </div>
-            {!isOnline && (
-              <div className="flex items-center gap-1.5 px-3 py-2 mb-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-xs font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-                Offline — will sync when reconnected
-              </div>
-            )}
             <form onSubmit={handleSave} className="space-y-3">
               {err && <p className="text-sm text-red-600">{err}</p>}
 
