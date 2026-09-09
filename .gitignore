@@ -15,6 +15,9 @@ pos-client/release/
 # Electron
 electron/
 
+# Capacitor Android project (generated, not source)
+pos-client/android/
+
 # Logs
 *.log
 npm-debug.log*

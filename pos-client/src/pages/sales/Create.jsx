@@ -223,11 +223,13 @@ export default function SalesCreate() {
     notes: '',
     payment_method: 'cash',
     discount_pct: '',
+    receipt_no: '',
   });
   const [selectedCustomer, setSelectedCustomer] = useState(null);
 
   const [items, setItems] = useState([newRow()]);
   const [error, setError] = useState('');
+  const qtyRefs = useRef([]);
 
   function setField(field, value) {
     setForm(f => ({ ...f, [field]: value }));
@@ -279,6 +281,7 @@ export default function SalesCreate() {
       return;
     }
     setItem(idx, 'product_id', p.id);
+    setTimeout(() => qtyRefs.current[idx]?.focus(), 30);
   }
 
   function addRow() {
@@ -327,7 +330,7 @@ export default function SalesCreate() {
           total:        qty * price,
         };
       }),
-      payments: [{ method: form.payment_method, amount: total }],
+      payments: [{ method: form.payment_method, amount: total, reference: form.receipt_no || null }],
       subtotal,
       discount: discountAmt,
       tax: 0,
@@ -355,7 +358,7 @@ export default function SalesCreate() {
         <p className="text-sm text-slate-400">New sales order for distribution.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4" onKeyDown={e => { if (e.key === 'Enter' && e.target.type !== 'submit') e.preventDefault(); }}>
         {/* Header fields */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
@@ -430,6 +433,7 @@ export default function SalesCreate() {
                         value={row.qty}
                         onChange={e => setItem(idx, 'qty', e.target.value)}
                         onFocus={e => e.target.select()}
+                        ref={el => qtyRefs.current[idx] = el}
                         required
                       />
                     </td>
@@ -488,6 +492,17 @@ export default function SalesCreate() {
                   </button>
                 ))}
               </div>
+              {form.payment_method === 'bank_transfer' && (
+                <div className="mt-2">
+                  <input
+                    type="text"
+                    placeholder="Receipt / Reference No."
+                    className={inputCls + ' w-full'}
+                    value={form.receipt_no}
+                    onChange={e => setField('receipt_no', e.target.value)}
+                  />
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1">Discount (%)</label>

@@ -113,7 +113,7 @@ function getModels(sequelize) {
   const Payment = sequelize.define('Payment', {
     id:        { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
     sale_id:   { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
-    method:    { type: DataTypes.ENUM('cash', 'card', 'qr', 'credit'), defaultValue: 'cash' },
+    method:    { type: DataTypes.ENUM('cash', 'card', 'qr', 'credit', 'bank_transfer'), defaultValue: 'cash' },
     amount:    { type: DataTypes.DECIMAL(10, 2), allowNull: false },
     reference: { type: DataTypes.STRING(191), allowNull: true },
   }, { tableName: 'payments' });

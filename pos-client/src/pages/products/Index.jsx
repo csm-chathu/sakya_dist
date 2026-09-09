@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useOfflineProducts } from '../../hooks/useOfflineProducts';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
@@ -81,8 +82,18 @@ const CATEGORY_COLORS = [
   'bg-cyan-100 text-cyan-700',
 ];
 
+function fmtSynced(iso) {
+  if (!iso) return null;
+  const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
+  if (diff < 60)   return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return new Date(iso).toLocaleDateString('en-LK', { day: '2-digit', month: 'short' });
+}
+
 /* ── Sales price-list component (read-only, mobile-first) ──────────────── */
-function SalesPriceView({ products, isLoading }) {
+function SalesPriceView() {
+  const { products, isLoading, isOffline, lastSynced, refetch } = useOfflineProducts();
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
 
@@ -113,9 +124,29 @@ function SalesPriceView({ products, isLoading }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-slate-800">Products</h1>
-          <p className="text-xs text-slate-400">{filtered.length} products</p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-bold text-slate-800">Products</h1>
+            {isOffline && (
+              <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-bold rounded-full border border-amber-200">
+                Offline
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-slate-400">
+            {filtered.length} products
+            {lastSynced && <span className="ml-2">· synced {fmtSynced(lastSynced)}</span>}
+          </p>
         </div>
+        <button
+          onClick={refetch}
+          disabled={isLoading}
+          title="Sync products"
+          className="p-2 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-xl transition-colors disabled:opacity-40"
+        >
+          <svg className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+        </button>
       </div>
 
       {/* Search */}
@@ -348,7 +379,7 @@ export default function ProductsIndex() {
 
   /* ── Sales-only simplified price list view ─────────────────────────── */
   if (role === 'sales') {
-    return <SalesPriceView products={serverRows} isLoading={isLoading} />;
+    return <SalesPriceView />;
   }
 
   return (

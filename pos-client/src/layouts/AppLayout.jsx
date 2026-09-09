@@ -169,7 +169,7 @@ export default function AppLayout() {
 
   const mainNav = [
     { to: '/dashboard',       label: t('nav.dashboard'),   icon: Icons.dashboard, feature: 'dashboard' },
-    { to: '/sales',           label: 'Orders',             icon: Icons.sales,     feature: 'sales' },
+    { to: '/sales',           label: 'Orders',             icon: Icons.sales,     feature: 'sales', salesRole: true },
     { to: '/deliveries',           label: 'Deliveries',  icon: Icons.truck,      feature: 'deliveries' },
     { to: '/deliveries/loadsheet', label: 'Load Sheet',  icon: Icons.loadsheet,  feature: 'deliveries' },
     { to: '/areas',                label: 'Areas',       icon: Icons.map,        feature: 'areas' },
@@ -181,7 +181,7 @@ export default function AppLayout() {
     { to: '/credit',          label: t('nav.credit_book'), icon: Icons.credit,    feature: 'credit' },
     { to: '/suppliers',       label: t('nav.suppliers'),   icon: Icons.suppliers, feature: 'suppliers' },
     { to: '/categories',      label: t('nav.categories'),  icon: Icons.categories,feature: 'categories' },
-  ].filter(n => canSee(n.feature));
+  ].filter(n => canSee(n.feature) || (n.salesRole && role === 'sales'));
 
   const mgmtNav = [
     { to: '/reports',          label: t('nav.reports'),    icon: Icons.reports,  feature: 'reports' },

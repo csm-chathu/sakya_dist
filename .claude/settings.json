@@ -51,7 +51,10 @@
       "Bash(powershell -Command \"Add-MpPreference -ExclusionPath 'E:\\\\LMUC\\\\POS-sinhala\\\\pos-client\\\\release'\")",
       "Bash(git -C e:/LMUC/shakya remote -v)",
       "Bash(git -C e:/LMUC/shakya remote remove origin)",
-      "Bash(where mysql *)"
+      "Bash(where mysql *)",
+      "Bash(mkdir -p assets)",
+      "Bash(cp public/shakya.jpg assets/icon-only.png)",
+      "Bash(npx @capacitor/assets generate --android)"
     ]
   },
   "hooks": {

@@ -57,7 +57,7 @@ function AdminOnlyRoute() {
 
 function DefaultRedirect() {
   const role = useSelector(selectRole);
-  return <Navigate to={role === 'sales' ? '/products' : '/dashboard'} replace />;
+  return <Navigate to={role === 'sales' ? '/sales/create' : '/dashboard'} replace />;
 }
 
 // Electron's packaged renderer loads index.html via the `file://` protocol,
