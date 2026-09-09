@@ -26,6 +26,10 @@ export const deliveriesApi = api.injectEndpoints({
       query: id => ({ url: `/deliveries/${id}`, method: 'DELETE' }),
       invalidatesTags: [{ type: 'Deliveries', id: 'LIST' }],
     }),
+    bulkUpdateDeliveryStatus: build.mutation({
+      query: ({ ids, status }) => ({ url: '/deliveries/bulk-status', method: 'PUT', body: { ids, status } }),
+      invalidatesTags: [{ type: 'Deliveries', id: 'LIST' }],
+    }),
     getLoadsheet: build.query({
       query: (params) => ({ url: '/deliveries/loadsheet', params }),
       keepUnusedDataFor: 60,
@@ -40,4 +44,5 @@ export const {
   useUpdateDeliveryStatusMutation,
   useDeleteDeliveryMutation,
   useGetLoadsheetQuery,
+  useBulkUpdateDeliveryStatusMutation,
 } = deliveriesApi;

@@ -7,6 +7,7 @@ import { useLocale } from '../contexts/LocaleContext';
 import { useTheme } from '../contexts/ThemeContext';
 import NotificationDrawer, { useNotifBadge } from '../components/NotificationDrawer';
 import { api } from '../app/baseApi';
+import { useGetReportLowStockQuery } from '../features/reports/reportsApi';
 import { getApiUrl } from '../config/runtimeConfig';
 
 const settingsApi = api.injectEndpoints({
@@ -93,6 +94,8 @@ export default function AppLayout() {
   const navigation = useNavigation();
 
   const { data: layoutSettings } = settingsApi.useGetLayoutSettingsQuery(undefined, { skip: !token });
+  const { data: lowStockData } = useGetReportLowStockQuery(undefined, { skip: !token, pollingInterval: 120000 });
+  const lowStockCount = lowStockData?.products?.length || 0;
 
   const [notifOpen, setNotifOpen] = useState(false);
   const notifCount = useNotifBadge(token);
@@ -170,7 +173,7 @@ export default function AppLayout() {
     { to: '/deliveries',           label: 'Deliveries',  icon: Icons.truck,      feature: 'deliveries' },
     { to: '/deliveries/loadsheet', label: 'Load Sheet',  icon: Icons.loadsheet,  feature: 'deliveries' },
     { to: '/areas',                label: 'Areas',       icon: Icons.map,        feature: 'areas' },
-    { to: '/products',        label: t('nav.products'),    icon: Icons.products,  feature: 'products', end: true },
+    { to: '/products',        label: t('nav.products'),    icon: Icons.products,  feature: 'products', end: true, badge: lowStockCount },
     { to: '/products/intake', label: t('nav.stock_intake'),icon: Icons.intake,    feature: 'stock_intake' },
     { to: '/purchases',       label: t('nav.purchases'),   icon: Icons.purchases, feature: 'purchases' },
     { to: '/customers',       label: t('nav.customers'),   icon: Icons.customers, feature: 'customers' },
@@ -262,7 +265,7 @@ export default function AppLayout() {
 
         {/* Nav */}
         <nav className={`flex-1 overflow-y-auto py-3 space-y-0.5 ${displayCollapsed ? 'px-1' : 'px-2'}`}>
-          {mainNav.map(({ to, label, icon, end: endProp }) => (
+          {mainNav.map(({ to, label, icon, end: endProp, badge }) => (
             <NavLink key={to} to={to}
               end={endProp || to === '/sales' || to === '/dashboard' || to === '/settings' || to === '/invoices' || to === '/deliveries' || to === '/deliveries/loadsheet' || to === '/areas'}
               title={displayCollapsed ? label : undefined}
@@ -271,6 +274,11 @@ export default function AppLayout() {
             >
               {icon}
               {!displayCollapsed && <span className="flex-1 truncate">{label}</span>}
+              {!displayCollapsed && badge > 0 && (
+                <span className="shrink-0 text-[10px] font-bold bg-red-500 text-white rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                  {badge > 99 ? '99+' : badge}
+                </span>
+              )}
             </NavLink>
           ))}
 

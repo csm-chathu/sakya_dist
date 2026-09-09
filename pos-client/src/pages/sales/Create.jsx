@@ -301,6 +301,16 @@ export default function SalesCreate() {
     const validItems = items.filter(r => r.product_id && parseFloat(r.qty) > 0);
     if (validItems.length === 0) { setError('Add at least one item'); return; }
 
+    if (form.payment_method === 'credit') {
+      if (!selectedCustomer) { setError('Select a customer for credit sales'); return; }
+      const limit   = parseFloat(selectedCustomer.credit_limit || 0);
+      const balance = parseFloat(selectedCustomer.credit_balance || 0);
+      if (limit > 0 && balance + total > limit) {
+        const avail = (limit - balance).toLocaleString('en-LK', { minimumFractionDigits: 2 });
+        if (!window.confirm(`Credit limit exceeded!\n\nAvailable credit: Rs. ${avail}\nOrder total: Rs. ${total.toLocaleString('en-LK', { minimumFractionDigits: 2 })}\n\nProceed anyway?`)) return;
+      }
+    }
+
     const payload = {
       customer_id: selectedCustomer?.id || null,
       items: validItems.map(r => {

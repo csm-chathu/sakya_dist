@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useGetSaleQuery, useReturnSaleMutation } from '../../features/sales/salesApi';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser, selectRole } from '../../features/auth/authSlice';
@@ -46,6 +46,8 @@ const IcoSpinner = <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 
 export default function SaleShow() {
   const { id }   = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const autoPrint = searchParams.get('print') === '1';
   const role     = useSelector(selectRole);
   const user     = useSelector(selectCurrentUser);
   const { t }    = useLocale();
@@ -65,6 +67,13 @@ export default function SaleShow() {
       .then(setShopInfo)
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (autoPrint && sale && shopInfo) {
+      handlePrint();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPrint, sale?.id, shopInfo?.shop_name]);
 
   function openReturn() {
     setReturnItems((sale.items || []).map(i => ({ ...i, return_qty: 0 })));

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { useGetDeliveriesQuery, useDeleteDeliveryMutation } from '../../features/deliveries/deliveriesApi';
+import { useGetDeliveriesQuery, useDeleteDeliveryMutation, useBulkUpdateDeliveryStatusMutation } from '../../features/deliveries/deliveriesApi';
 import { selectRole } from '../../features/auth/authSlice';
 import { useLocale } from '../../contexts/LocaleContext';
 
@@ -36,6 +36,7 @@ export default function DeliveriesIndex() {
 
   const { data, isLoading } = useGetDeliveriesQuery(params);
   const [deleteDelivery] = useDeleteDeliveryMutation();
+  const [bulkUpdateStatus, { isLoading: bulkUpdating }] = useBulkUpdateDeliveryStatusMutation();
   const role     = useSelector(selectRole);
   const canDelete = role === 'admin' || role === 'manager';
 
@@ -69,6 +70,14 @@ export default function DeliveriesIndex() {
     navigate(`/deliveries/loadsheet?ids=${ids}`);
   }
 
+  async function handleBulkDeliver() {
+    if (!confirm(`Mark ${selected.size} deliveries as delivered?`)) return;
+    try {
+      await bulkUpdateStatus({ ids: [...selected], status: 'delivered' }).unwrap();
+      setSelected(new Set());
+    } catch (e) { alert(e?.data?.error || 'Failed to update'); }
+  }
+
   function formatDate(s) {
     if (!s) return '—';
     return new Date(s).toLocaleDateString('en-LK', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -100,6 +109,16 @@ export default function DeliveriesIndex() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 7h6m-6 4h4"/>
                 </svg>
                 Load Sheet ({selected.size})
+              </button>
+              <button
+                onClick={handleBulkDeliver}
+                disabled={bulkUpdating}
+                className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
+                </svg>
+                Mark Delivered ({selected.size})
               </button>
             </>
           ) : (

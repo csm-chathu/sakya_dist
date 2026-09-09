@@ -63,6 +63,18 @@ router.get('/loadsheet', auth, async (req, res) => {
   res.json(rows);
 });
 
+// PUT /api/deliveries/bulk-status — bulk update status
+router.put('/bulk-status', auth, role('admin', 'manager'), async (req, res) => {
+  const { Delivery } = req.models;
+  const { ids, status } = req.body;
+  const VALID = ['pending', 'loaded', 'in_transit', 'delivered', 'returned'];
+  if (!Array.isArray(ids) || !ids.length || !VALID.includes(status)) {
+    return res.status(400).json({ error: 'ids array and valid status required' });
+  }
+  await Delivery.update({ status }, { where: { id: { [Op.in]: ids } } });
+  res.json({ updated: ids.length });
+});
+
 // POST /api/deliveries — create
 router.post('/', auth, async (req, res) => {
   const { Delivery } = req.models;
