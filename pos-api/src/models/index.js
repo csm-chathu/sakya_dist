@@ -245,6 +245,7 @@ function getModels(sequelize) {
 
   Customer.hasMany(CreditPayment, { foreignKey: 'customer_id', as: 'creditPayments' });
   Customer.hasMany(Sale, { foreignKey: 'customer_id', as: 'sales' });
+  CreditPayment.belongsTo(Customer, { foreignKey: 'customer_id', as: 'customer' });
   CreditPayment.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
   Role.belongsToMany(Feature, { through: 'role_features', foreignKey: 'role_id', otherKey: 'feature_id', timestamps: false });
