@@ -264,7 +264,7 @@ export default function UsersIndex() {
             </div>
             <form onSubmit={handleSave} className="space-y-3">
               {err && <p className="text-sm text-red-600">{err}</p>}
-              {[[`${t('usr.name')} *`, 'name', 'text', { required: true }], [`${t('usr.email')} *`, 'email', 'email', { required: true }]].map(([label, field, type, props = {}]) => (
+              {[[`${t('usr.name')} *`, 'name', 'text', { required: true }], [`${t('usr.email')} *`, 'email', 'text', { required: true }]].map(([label, field, type, props = {}]) => (
                 <div key={field}>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">{label}</label>
                   <input type={type} value={form[field]} onChange={set(field)}
