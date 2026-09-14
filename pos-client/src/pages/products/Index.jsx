@@ -92,10 +92,73 @@ function fmtSynced(iso) {
 }
 
 /* ── Sales price-list component (read-only, mobile-first) ──────────────── */
+function ProductDetailModal({ product, catColor, onClose }) {
+  const p = product;
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4"
+      onClick={onClose}>
+      <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col"
+        onClick={e => e.stopPropagation()}>
+        {/* Image */}
+        <div className="relative bg-slate-100 shrink-0" style={{height: 260}}>
+          {p.image
+            ? <img src={p.image} alt={p.name} className="w-full h-full object-contain" />
+            : <div className="w-full h-full flex items-center justify-center">
+                <svg className="w-20 h-20 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                </svg>
+              </div>
+          }
+          <button onClick={onClose}
+            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/60 transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        {/* Details */}
+        <div className="p-5 overflow-y-auto flex-1 space-y-4">
+          {p.category?.name && (
+            <span className={`inline-block text-xs font-bold px-2.5 py-1 rounded-full ${catColor}`}>
+              {p.category.name}
+            </span>
+          )}
+          <h2 className="text-xl font-bold text-slate-800 leading-snug">{p.name}</h2>
+          {p.name_si && <p className="text-sm text-slate-500">{p.name_si}</p>}
+
+          <div className="bg-orange-50 rounded-2xl px-4 py-3">
+            <p className="text-xs text-slate-500 mb-0.5">Selling Price</p>
+            <p className="text-3xl font-extrabold text-orange-600 leading-none">
+              Rs.&nbsp;{fmtPrice(p.selling_price).replace('Rs. ', '')}
+            </p>
+            {p.unit && <p className="text-xs text-slate-400 mt-1">per {p.unit}</p>}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {p.sku && (
+              <div className="bg-slate-50 rounded-xl px-3 py-2.5">
+                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mb-0.5">SKU</p>
+                <p className="text-sm font-mono font-semibold text-slate-700">{p.sku}</p>
+              </div>
+            )}
+            {p.barcode && (
+              <div className="bg-slate-50 rounded-xl px-3 py-2.5">
+                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mb-0.5">Barcode</p>
+                <p className="text-sm font-mono font-semibold text-slate-700">{p.barcode}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SalesPriceView() {
   const { products, isLoading, isOffline, lastSynced, refetch } = useOfflineProducts();
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   const categories = useMemo(() => {
     const cats = [...new Set(products.map(p => p.category?.name).filter(Boolean))];
@@ -209,6 +272,15 @@ function SalesPriceView() {
         </div>
       )}
 
+      {/* Product detail modal */}
+      {selectedProduct && (
+        <ProductDetailModal
+          product={selectedProduct}
+          catColor={catColorMap[selectedProduct.category?.name] || 'bg-slate-100 text-slate-600'}
+          onClose={() => setSelectedProduct(null)}
+        />
+      )}
+
       {/* Cards grid */}
       {!isLoading && filtered.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -217,7 +289,8 @@ function SalesPriceView() {
             const catColor = catColorMap[catName] || 'bg-slate-100 text-slate-600';
             return (
               <div key={p.id}
-                className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col hover:shadow-md hover:border-orange-200 transition-all">
+                onClick={() => setSelectedProduct(p)}
+                className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col hover:shadow-md hover:border-orange-200 transition-all cursor-pointer active:scale-95">
                 {/* Product image */}
                 {p.image
                   ? <img src={p.image} alt={p.name} className="w-full h-32 object-cover" />

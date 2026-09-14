@@ -53,7 +53,7 @@ const DEMO = [
 ];
 
 export default function Login() {
-  const [form, setForm]       = useState({ email: 'admin@lumac.lk', password: '' });
+  const [form, setForm]       = useState({ email: '', password: '' });
   const [error, setError]     = useState('');
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [appInfo, setAppInfo] = useState(() => {
