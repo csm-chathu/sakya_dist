@@ -612,6 +612,8 @@ export default function ProductsIndex() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('prod.category')}</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('prod.sell_price')}</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('lbl.our_price')}</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Cost Price</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Margin</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('prod.stock')}</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('th.status')}</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('th.actions')}</th>
@@ -647,6 +649,20 @@ export default function ProductsIndex() {
                       <td className="px-4 py-3 text-right">
                         {p.our_price
                           ? <span className="font-bold text-orange-500">{fmtPrice(p.our_price)}</span>
+                          : <span className="text-slate-300">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {p.cost_price > 0
+                          ? <span className="text-slate-600">{fmtPrice(p.cost_price)}</span>
+                          : <span className="text-slate-300">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {p.cost_price > 0 && p.selling_price > 0
+                          ? (() => {
+                              const margin = ((p.selling_price - p.cost_price) / p.selling_price * 100);
+                              const cls = margin < 0 ? 'text-red-500' : margin < 10 ? 'text-amber-500' : 'text-green-600';
+                              return <span className={`font-semibold ${cls}`}>{margin.toFixed(1)}%</span>;
+                            })()
                           : <span className="text-slate-300">—</span>}
                       </td>
                       <td className="px-4 py-3 text-right">
