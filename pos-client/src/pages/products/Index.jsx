@@ -194,7 +194,7 @@ function SalesPriceView() {
       {isLoading && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {[...Array(8)].map((_, i) => (
-            <div key={i} className="bg-white rounded-2xl border border-slate-200 p-4 animate-pulse h-28" />
+            <div key={i} className="bg-white rounded-2xl border border-slate-200 animate-pulse h-52" />
           ))}
         </div>
       )}
@@ -217,13 +217,23 @@ function SalesPriceView() {
             const catColor = catColorMap[catName] || 'bg-slate-100 text-slate-600';
             return (
               <div key={p.id}
-                className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-col gap-2 hover:shadow-md hover:border-orange-200 transition-all">
+                className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col hover:shadow-md hover:border-orange-200 transition-all">
+                {/* Product image */}
+                {p.image
+                  ? <img src={p.image} alt={p.name} className="w-full h-32 object-cover" />
+                  : <div className="w-full h-32 bg-slate-100 flex items-center justify-center">
+                      <svg className="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                      </svg>
+                    </div>
+                }
+                <div className="p-3 flex flex-col gap-2 flex-1">
                 {catName && (
                   <span className={`self-start text-[10px] font-bold px-2 py-0.5 rounded-full ${catColor}`}>
                     {catName}
                   </span>
                 )}
-                <p className="text-sm font-semibold text-slate-800 leading-snug line-clamp-3 flex-1">
+                <p className="text-sm font-semibold text-slate-800 leading-snug line-clamp-2 flex-1">
                   {p.name}
                 </p>
                 <div className="pt-2 border-t border-slate-100">
@@ -232,6 +242,7 @@ function SalesPriceView() {
                     Rs.&nbsp;{fmtPrice(p.selling_price).replace('Rs. ', '')}
                   </p>
                   {p.unit && <p className="text-[10px] text-slate-400 mt-0.5">per {p.unit}</p>}
+                </div>
                 </div>
               </div>
             );
