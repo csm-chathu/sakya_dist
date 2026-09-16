@@ -391,6 +391,7 @@ export default function ProductsIndex() {
   const rows = baseRows;
 
   const [printModal,   setPrintModal]   = useState(null);  // { product }
+  const [imageModal,   setImageModal]   = useState(null);  // url string
   const [printQty,     setPrintQty]     = useState(1);
   const [printingIds,  setPrintingIds]  = useState(new Set());
 
@@ -697,12 +698,16 @@ export default function ProductsIndex() {
                   const isLow = parseFloat(p.stock_qty) <= parseFloat(p.alert_qty);
                   return (
                     <tr key={p.id} className="odd:bg-white even:bg-slate-50 hover:bg-blue-50 border-b border-slate-100 transition-colors">
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-2">
                         {p.image ? (
-                          <img src={p.image} alt={p.name} className="w-9 h-9 rounded-lg object-cover border border-slate-100" />
+                          <img
+                            src={p.image} alt={p.name}
+                            onClick={() => setImageModal(p.image)}
+                            className="w-14 h-14 rounded-xl object-cover border border-slate-200 cursor-zoom-in hover:scale-105 transition-transform shadow-sm"
+                          />
                         ) : (
-                          <div className="w-9 h-9 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-300">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <div className="w-14 h-14 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-300">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <rect x="3" y="3" width="18" height="18" rx="2" strokeWidth={1.5}/>
                               <circle cx="8.5" cy="8.5" r="1.5" strokeWidth={1.5}/>
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 15l-5-5L5 21"/>
@@ -837,6 +842,28 @@ export default function ProductsIndex() {
             </button>
           </div>
         </div>
+      </div>
+    )}
+    {/* Image lightbox */}
+    {imageModal && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+        onClick={() => setImageModal(null)}
+      >
+        <img
+          src={imageModal}
+          alt="Product"
+          className="max-w-full max-h-full rounded-2xl shadow-2xl object-contain"
+          onClick={e => e.stopPropagation()}
+        />
+        <button
+          onClick={() => setImageModal(null)}
+          className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
       </div>
     )}
     </>
