@@ -125,9 +125,10 @@ export default function PosCreate() {
 
   /* ── add to cart ── */
   function addProduct(p) {
-    const price = priceMode === 'wholesale' && p.wholesale_price
+    const basePrice = priceMode === 'wholesale' && p.wholesale_price
       ? parseFloat(p.wholesale_price)
       : parseFloat(p.selling_price || 0);
+    const price = Math.round(basePrice * 1.10 * 100) / 100;
 
     setCart(prev => {
       const idx = prev.findIndex(r => r.product_id === p.id && r.unit_price === price);
