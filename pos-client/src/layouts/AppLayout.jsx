@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation, useNavigation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout, setCredentials, selectCurrentUser, selectRole, selectToken, selectFeatures } from '../features/auth/authSlice';
@@ -44,6 +44,7 @@ const Icons = {
   map:   <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 0 1 3 16.382V5.618a1 1 0 0 1 1.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0 0 21 18.382V7.618a1 1 0 0 0-1.447-.894L15 9m0 8V9m0 0L9 7"/></svg>,
   loadsheet: <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 7h6m-6 4h4"/></svg>,
   pin: <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>,
+  newSale: <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/><circle cx="12" cy="12" r="10" strokeWidth={2}/></svg>,
 };
 
 const PAGE_TITLE_KEYS = {
@@ -162,10 +163,18 @@ export default function AppLayout() {
     setZoomScale(scale);
   }, [layoutSettings]);
 
-  // Auto-collapse sidebar on POS create page (it has its own full-screen layout)
+  // Auto-collapse sidebar on POS create page; restore when leaving
   const isPosCreate = location.pathname === '/pos/create';
+  const prevCollapsedRef = useRef(null);
   useEffect(() => {
-    if (isPosCreate) setCollapsed(true);
+    if (isPosCreate) {
+      prevCollapsedRef.current = collapsed;
+      setCollapsed(true);
+    } else if (prevCollapsedRef.current !== null) {
+      setCollapsed(prevCollapsedRef.current);
+      localStorage.setItem('sidebar_collapsed', String(prevCollapsedRef.current));
+      prevCollapsedRef.current = null;
+    }
   }, [isPosCreate]);
 
   // On mobile drawer, always show full labels regardless of collapsed state
@@ -179,8 +188,8 @@ export default function AppLayout() {
   const mainNav = [
     { to: '/dashboard',       label: t('nav.dashboard'),   icon: Icons.dashboard, feature: 'dashboard' },
     { to: '/sales',           label: 'Orders',             icon: Icons.sales,     feature: 'sales' },
-    { to: '/pos',             label: 'Sales',              icon: Icons.pos,       feature: 'pos' },
-    { to: '/pos/create',      label: 'New Sale',           icon: Icons.pos,       feature: 'new_pos' },
+    { to: '/pos',             label: 'Sales',              icon: Icons.pos,       feature: 'pos',     end: true },
+    { to: '/pos/create',      label: 'New Sale',           icon: Icons.newSale,   feature: 'new_pos' },
     { to: '/deliveries',           label: 'Deliveries',  icon: Icons.truck,      feature: 'deliveries' },
     { to: '/deliveries/loadsheet', label: 'Load Sheet',  icon: Icons.loadsheet,  feature: 'deliveries' },
     { to: '/areas',                label: 'Areas',       icon: Icons.map,        feature: 'areas' },

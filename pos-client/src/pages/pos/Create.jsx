@@ -66,10 +66,8 @@ export default function PosCreate() {
   const [discInput,   setDiscInput]   = useState('0');
   const [payMethod,   setPayMethod]   = useState('cash');
   const [amountPaid,  setAmountPaid]  = useState('');
-  const [notes,       setNotes]       = useState('');
   const [error,       setError]       = useState('');
   const [showQuickAdd,setShowQuickAdd]= useState(false);
-  const [splitPay,    setSplitPay]    = useState({ cash: '', card: '', credit: '' });
 
   const searchRef  = useRef(null);
   const paidRef    = useRef(null);
@@ -89,10 +87,8 @@ export default function PosCreate() {
     ? subtotal * Math.min(parseFloat(discInput) || 0, 100) / 100
     : Math.min(parseFloat(discInput) || 0, subtotal);
   const total    = Math.max(0, subtotal - discAmt);
-  const paid     = payMethod === 'split'
-    ? Object.values(splitPay).reduce((s, v) => s + (parseFloat(v) || 0), 0)
-    : parseFloat(amountPaid) || 0;
-  const change   = paid - total;
+  const paid   = parseFloat(amountPaid) || 0;
+  const change = paid - total;
 
   /* ── product search results ── */
   const q = search.trim().toLowerCase();
@@ -114,13 +110,11 @@ export default function PosCreate() {
       if (e.key === 'F1')  { e.preventDefault(); searchRef.current?.focus(); }
       if (e.key === 'F2')  { e.preventDefault(); setPayMethod('cash'); paidRef.current?.focus(); }
       if (e.key === 'F3')  { e.preventDefault(); setPayMethod('card'); }
-      if (e.key === 'F4')  { e.preventDefault(); setPayMethod('credit'); }
-      if (e.key === 'F5')  { e.preventDefault(); setPayMethod('split'); }
       if (e.key === 'F10') { e.preventDefault(); handleComplete(); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [cart, customer, payMethod, amountPaid, total, splitPay, notes]);
+  }, [cart, customer, payMethod, amountPaid, total]);
 
   /* ── close customer dropdown on outside click ── */
   useEffect(() => {
@@ -196,17 +190,8 @@ export default function PosCreate() {
   async function handleComplete() {
     setError('');
     if (cart.length === 0) { setError('Cart is empty'); return; }
-    if (payMethod === 'credit' && !customer) { setError('Select a customer for credit'); return; }
 
-    let payments = [];
-    if (payMethod === 'split') {
-      if (splitPay.cash)   payments.push({ method: 'cash',   amount: parseFloat(splitPay.cash)   || 0 });
-      if (splitPay.card)   payments.push({ method: 'card',   amount: parseFloat(splitPay.card)   || 0 });
-      if (splitPay.credit) payments.push({ method: 'credit', amount: parseFloat(splitPay.credit) || 0 });
-      if (!payments.length) { setError('Enter split amounts'); return; }
-    } else {
-      payments = [{ method: payMethod, amount: payMethod === 'credit' ? total : (parseFloat(amountPaid) || total), reference: null }];
-    }
+    const payments = [{ method: payMethod, amount: parseFloat(amountPaid) || total, reference: null }];
 
     const payload = {
       customer_id: customer?.id || null,
@@ -224,7 +209,7 @@ export default function PosCreate() {
       discount: discAmt,
       total,
       status: 'completed',
-      notes: notes || null,
+      notes: null,
     };
 
     try {
@@ -265,7 +250,7 @@ export default function PosCreate() {
         </div>
         {/* shortcut hints */}
         <div className="flex items-center gap-2 text-xs text-slate-400">
-          {[['F1','Search'],['F2','Cash'],['F3','Card'],['F4','Credit'],['F5','Split'],['F10','Complete']].map(([k,l]) => (
+          {[['F1','Search'],['F2','Cash'],['F3','Card'],['F10','Complete']].map(([k,l]) => (
             <span key={k} className="hidden sm:flex items-center gap-1 px-2 py-0.5 bg-slate-700 rounded text-slate-300">
               <kbd className="font-mono text-orange-400">{k}</kbd><span>{l}</span>
             </span>
@@ -401,7 +386,7 @@ export default function PosCreate() {
               </div>
               {/* quick pct buttons */}
               <div className="flex gap-1">
-                {[0,5,10,15,20].map(p => (
+                {[0,5,10,15].map(p => (
                   <button key={p} type="button" onClick={() => applyDiscPct(p)}
                     className={`px-2 py-1 rounded-lg text-xs font-semibold transition-colors ${parseFloat(discInput)===p && discountType==='pct' ? 'bg-orange-500 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}>
                     {p === 0 ? '0' : `${p}%`}
@@ -416,10 +401,8 @@ export default function PosCreate() {
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Payment Method</p>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { key:'cash',   label:'Cash',   kbd:'F2', icon:'💵' },
-                { key:'card',   label:'Card',   kbd:'F3', icon:'💳' },
-                { key:'credit', label:'Credit', kbd:'F4', icon:'📋' },
-                { key:'split',  label:'Split',  kbd:'F5', icon:'⇄' },
+                { key:'cash', label:'Cash', kbd:'F2', icon:'💵' },
+                { key:'card', label:'Card', kbd:'F3', icon:'💳' },
               ].map(m => (
                 <button key={m.key} type="button" onClick={() => setPayMethod(m.key)}
                   className={`flex flex-col items-center gap-1 py-3 rounded-xl font-semibold text-sm border transition-all ${
@@ -432,20 +415,6 @@ export default function PosCreate() {
                 </button>
               ))}
             </div>
-
-            {/* Split inputs */}
-            {payMethod === 'split' && (
-              <div className="mt-3 space-y-2">
-                {[['cash','Cash 💵'],['card','Card 💳'],['credit','Credit 📋']].map(([k,l]) => (
-                  <div key={k} className="flex items-center gap-2">
-                    <span className="text-slate-400 text-xs w-14">{l}</span>
-                    <input type="number" min="0" step="0.01" placeholder="0.00" value={splitPay[k]}
-                      onChange={e => setSplitPay(s => ({ ...s, [k]: e.target.value }))}
-                      className="flex-1 bg-slate-700 border border-slate-600 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"/>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Amount Paid */}
@@ -496,7 +465,7 @@ export default function PosCreate() {
             </div>
 
             {/* Amount paid input */}
-            {payMethod !== 'split' && payMethod !== 'credit' && (
+            {(
               <>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Amount Paid</p>
                 <input ref={paidRef} type="number" min="0" step="0.01" value={amountPaid}
@@ -527,9 +496,6 @@ export default function PosCreate() {
               </>
             )}
 
-            {/* Notes */}
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes…" rows={2}
-              className="mt-3 w-full bg-slate-700 border border-slate-600 rounded-xl px-3 py-2 text-slate-300 placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"/>
           </div>
 
           {/* Error */}
