@@ -6,6 +6,8 @@ const DEFAULT_FEATURES = [
   { key: 'dashboard',        label: 'Dashboard',        path: '/dashboard',          group: 'main', sort_order: 1  },
   { key: 'new_sale',         label: 'New Sale',          path: '/sales/create',       group: 'main', sort_order: 2  },
   { key: 'sales',            label: 'Sales',             path: '/sales',              group: 'main', sort_order: 3  },
+  { key: 'pos',              label: 'POS Sales',         path: '/pos',                group: 'main', sort_order: 4  },
+  { key: 'new_pos',          label: 'POS New Sale',      path: '/pos/create',         group: 'main', sort_order: 5  },
   { key: 'deliveries',       label: 'Deliveries',        path: '/deliveries',         group: 'main', sort_order: 4  },
   { key: 'areas',            label: 'Areas',             path: '/areas',              group: 'main', sort_order: 5  },
   { key: 'invoices',         label: 'Day End',           path: '/invoices',           group: 'main', sort_order: 6  },

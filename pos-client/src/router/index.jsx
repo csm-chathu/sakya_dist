@@ -12,6 +12,8 @@ import ProductIntake  from '../pages/products/Intake';
 import SalesIndex     from '../pages/sales/Index';
 import SalesCreate    from '../pages/sales/Create';
 import SalesShow      from '../pages/sales/Show';
+import PosIndex       from '../pages/pos/Index';
+import PosCreate      from '../pages/pos/Create';
 import CustomersIndex  from '../pages/customers/Index';
 import CustomerCredit  from '../pages/customers/Credit';
 import CreditIndex     from '../pages/credit/Index';
@@ -85,6 +87,9 @@ export const router = createAppRouter([
         { path: 'sales',                element: <SalesIndex /> },
         { path: 'sales/create',         element: <SalesCreate /> },
         { path: 'sales/:id',            element: <SalesShow /> },
+        { path: 'pos',                  element: <PosIndex /> },
+        { path: 'pos/create',           element: <PosCreate /> },
+        { path: 'pos/:id',              element: <SalesShow /> },
         { path: 'products',             element: <ProductsIndex /> },
         { path: 'products/create',      element: <ProductCreate /> },
         { path: 'products/intake',      element: <ProductIntake /> },

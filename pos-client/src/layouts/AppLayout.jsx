@@ -170,6 +170,8 @@ export default function AppLayout() {
   const mainNav = [
     { to: '/dashboard',       label: t('nav.dashboard'),   icon: Icons.dashboard, feature: 'dashboard' },
     { to: '/sales',           label: 'Orders',             icon: Icons.sales,     feature: 'sales' },
+    { to: '/pos',             label: 'Sales',              icon: Icons.pos,       feature: 'pos' },
+    { to: '/pos/create',      label: 'New Sale',           icon: Icons.pos,       feature: 'new_pos' },
     { to: '/deliveries',           label: 'Deliveries',  icon: Icons.truck,      feature: 'deliveries' },
     { to: '/deliveries/loadsheet', label: 'Load Sheet',  icon: Icons.loadsheet,  feature: 'deliveries' },
     { to: '/areas',                label: 'Areas',       icon: Icons.map,        feature: 'areas' },
