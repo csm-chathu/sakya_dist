@@ -68,10 +68,10 @@ export default function PosShow() {
 
     return `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <title>Receipt — ${sale.invoice_no}</title>
-<style>*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Courier New',monospace;font-size:11pt;width:80mm;margin:0 auto;padding:5mm 3mm;color:#000;background:#fff}
-.center{text-align:center}.bold{font-weight:700}
-.sep{border:none;border-top:1px dashed #555;margin:3mm 0}
+<style>*{margin:0;padding:0;box-sizing:border-box;color:#000;font-weight:800}
+body{font-family:'Courier New',monospace;font-size:11pt;width:80mm;margin:0 auto;padding:5mm 3mm;background:#fff}
+.center{text-align:center}.bold{font-weight:800}
+.sep{border:none;border-top:1px dashed #000;margin:3mm 0}
 table{width:100%;border-collapse:collapse;font-size:10pt}
 @media print{@page{size:80mm auto;margin:0}body{margin:2mm;padding:2mm}}</style>
 </head><body>
@@ -101,8 +101,8 @@ table{width:100%;border-collapse:collapse;font-size:10pt}
 <table><tbody>${payLines}${paidCash>0&&change>0?`<tr><td>Change</td><td style="text-align:right">Rs. ${fmt(change)}</td></tr>`:''}</tbody></table>
 <hr class="sep">
 <div class="center" style="font-size:9pt;line-height:1.8">
-  Thank you for your purchase!<br>Please keep this receipt.<br>
-  Returns within 30 days with receipt.
+  Thank you for shopping with us!<br>Please retain this receipt for future reference.<br>
+  <span style="font-size:8pt">lumac.lk</span>
 </div>
 </body></html>`;
   }
@@ -149,59 +149,62 @@ table{width:100%;border-collapse:collapse;font-size:10pt}
           <div className="bg-white shadow-xl rounded-2xl overflow-hidden border border-slate-200">
             {/* top teeth */}
             <div className="h-3 bg-slate-100" style={{ backgroundImage: 'radial-gradient(circle at 8px -2px, transparent 10px, #f1f5f9 10px)', backgroundSize: '16px 12px', backgroundRepeat: 'repeat-x' }}/>
-            <div className="px-5 py-4 font-mono text-xs text-slate-800">
+            <div className="px-5 py-4 font-mono text-xs text-black">
               {/* shop header */}
               <div className="text-center mb-3">
                 {shopInfo.shop_logo && <img src={shopInfo.shop_logo} alt="" className="h-16 object-contain mx-auto mb-2"/>}
                 <p className="font-black text-sm">{shopInfo.shop_name || 'Sakya Enterprises'}</p>
-                {shopInfo.address && <p className="text-[10px] text-slate-500">{shopInfo.address}</p>}
-                {shopInfo.phone   && <p className="text-[10px] text-slate-500">Tel: {shopInfo.phone}</p>}
+                {shopInfo.address && <p className="text-[10px]">{shopInfo.address}</p>}
+                {shopInfo.phone   && <p className="text-[10px]">Tel: {shopInfo.phone}</p>}
               </div>
-              <div className="border-t border-dashed border-slate-300 my-2"/>
+              <div className="border-t border-dashed border-black my-2"/>
               {/* invoice info */}
               <div className="space-y-0.5">
-                <div className="flex justify-between"><span className="text-slate-500">Invoice</span><span className="font-bold">{sale.invoice_no}</span></div>
-                <div className="flex justify-between"><span className="text-slate-500">Date</span><span>{fmtDate(sale.created_at)} {fmtTime(sale.created_at)}</span></div>
-                {sale.customer?.name && <div className="flex justify-between"><span className="text-slate-500">Customer</span><span className="truncate max-w-[120px] text-right">{sale.customer.name}</span></div>}
+                <div className="flex justify-between"><span>Invoice</span><span className="font-bold">{sale.invoice_no}</span></div>
+                <div className="flex justify-between"><span>Date</span><span>{fmtDate(sale.created_at)} {fmtTime(sale.created_at)}</span></div>
+                {sale.customer?.name && <div className="flex justify-between"><span>Customer</span><span className="truncate max-w-[120px] text-right">{sale.customer.name}</span></div>}
               </div>
-              <div className="border-t border-dashed border-slate-300 my-2"/>
+              <div className="border-t border-dashed border-black my-2"/>
               {/* items */}
               <div className="space-y-1">
                 {(sale.items || []).map((item, i) => {
                   const qty = parseFloat(item.qty || 0), price = parseFloat(item.unit_price || 0);
                   return (
-                    <div key={i} className="border-b border-slate-100 pb-1 last:border-0">
+                    <div key={i} className="border-b border-black/10 pb-1 last:border-0">
                       <p className="leading-tight font-medium">{item.product_name}</p>
-                      <div className="flex justify-between text-slate-500 mt-0.5">
+                      <div className="flex justify-between mt-0.5">
                         <span>{qty%1===0?qty.toFixed(0):qty.toFixed(2)} × {fmt(price)}</span>
-                        <span className="font-bold text-slate-800">{fmt(parseFloat(item.total||qty*price))}</span>
+                        <span className="font-bold">{fmt(parseFloat(item.total||qty*price))}</span>
                       </div>
                     </div>
                   );
                 })}
               </div>
-              <div className="border-t border-dashed border-slate-300 my-2"/>
+              <div className="border-t border-dashed border-black my-2"/>
               {/* totals */}
               <div className="space-y-0.5">
-                <div className="flex justify-between"><span className="text-slate-500">Sub Total</span><span>Rs. {fmt(sale.subtotal || total)}</span></div>
-                {parseFloat(sale.discount||0) > 0 && <div className="flex justify-between text-red-500"><span>Discount</span><span>- Rs. {fmt(sale.discount)}</span></div>}
-                <div className="flex justify-between font-black text-sm pt-1 border-t border-slate-200"><span>TOTAL</span><span>Rs. {fmt(total)}</span></div>
+                <div className="flex justify-between"><span>Sub Total</span><span>Rs. {fmt(sale.subtotal || total)}</span></div>
+                {parseFloat(sale.discount||0) > 0 && <div className="flex justify-between text-red-600"><span>Discount</span><span>- Rs. {fmt(sale.discount)}</span></div>}
+                <div className="flex justify-between font-black text-sm pt-1 border-t border-black"><span>TOTAL</span><span>Rs. {fmt(total)}</span></div>
               </div>
-              <div className="border-t border-dashed border-slate-300 my-2"/>
+              <div className="border-t border-dashed border-black my-2"/>
               {/* payments */}
               <div className="space-y-0.5">
                 {payments.map((p, i) => (
                   <div key={i} className="flex justify-between">
-                    <span className="text-slate-500 capitalize">{p.method.replace('_',' ')}</span>
+                    <span className="capitalize">{p.method.replace('_',' ')}</span>
                     <span className="font-semibold">Rs. {fmt(p.amount)}</span>
                   </div>
                 ))}
                 {paidCash > 0 && change > 0 && (
-                  <div className="flex justify-between text-green-600"><span>Change</span><span>Rs. {fmt(change)}</span></div>
+                  <div className="flex justify-between font-semibold"><span>Change</span><span>Rs. {fmt(change)}</span></div>
                 )}
               </div>
-              <div className="border-t border-dashed border-slate-300 my-2"/>
-              <p className="text-center text-[10px] text-slate-400 leading-relaxed">Thank you for your purchase!<br/>Returns within 30 days with receipt.</p>
+              <div className="border-t border-dashed border-black my-2"/>
+              <p className="text-center text-[10px] leading-relaxed">
+                Thank you for shopping with us!<br/>Please retain this receipt for future reference.<br/>
+                lumac.lk
+              </p>
             </div>
             {/* bottom teeth */}
             <div className="h-3 bg-slate-100" style={{ backgroundImage: 'radial-gradient(circle at 8px 14px, transparent 10px, #f1f5f9 10px)', backgroundSize: '16px 12px', backgroundRepeat: 'repeat-x' }}/>

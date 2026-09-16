@@ -203,7 +203,7 @@ export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('prod.shop_info')}</p>
 
           {/* Category + English Name */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1.5">{t('prod.category')}</label>
               <select {...register('category_id')} className={inp}>
@@ -226,7 +226,7 @@ export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
           </div>
 
           {/* Sinhala Name + Barcode + SKU */}
-          <div className="grid gap-3" style={{ gridTemplateColumns: '2fr 2fr 1fr' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-1.5">{t('prod.name_si')}</label>
               <input {...register('name_si')} placeholder="නමේ" className={inp} />
@@ -287,7 +287,7 @@ export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
           </div>
 
           {/* Product Image + Toggles */}
-          <div className="flex items-start gap-4">
+          <div className="flex flex-col sm:flex-row items-start gap-4">
             {/* Image picker */}
             <div className="flex-1">
               <label className="block text-sm font-medium text-slate-600 mb-2">{t('prod.image')}</label>
@@ -368,7 +368,7 @@ export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('prod.price_info')}</p>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-1.5">
                   {t('prod.buy_price')} <span className="text-red-500">*</span>
@@ -408,9 +408,9 @@ export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
               <input type="date" {...register('expiry_date')} className={inp} />
             </div>
 
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
               <button type="submit" disabled={uploading || saving || isSaving}
-                className="px-10 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:opacity-70 transition-colors shadow-md shadow-blue-600/20 flex items-center gap-2">
+                className="w-full sm:w-auto px-10 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 disabled:opacity-70 transition-colors shadow-md shadow-blue-600/20 flex items-center justify-center gap-2">
                 {(uploading || saving || isSaving) && (
                   <svg className="w-4 h-4 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
@@ -420,7 +420,7 @@ export default function ProductForm({ initial = {}, onSubmit, isSaving }) {
                 {uploading ? 'Uploading…' : (saving || isSaving) ? 'Saving…' : t('btn.save')}
               </button>
               <button type="button" onClick={() => history.back()}
-                className="px-8 py-3 rounded-xl border border-slate-300 text-slate-600 font-medium hover:bg-slate-50 transition-colors">
+                className="w-full sm:w-auto px-8 py-3 rounded-xl border border-slate-300 text-slate-600 font-medium hover:bg-slate-50 transition-colors text-center">
                 {t('btn.cancel')}
               </button>
             </div>

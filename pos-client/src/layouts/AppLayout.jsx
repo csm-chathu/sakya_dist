@@ -104,9 +104,7 @@ export default function AppLayout() {
   const [notifOpen, setNotifOpen] = useState(false);
   const notifCount = useNotifBadge(token);
 
-  const [collapsed, setCollapsed] = useState(
-    () => localStorage.getItem('sidebar_collapsed') === 'true'
-  );
+  const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [routing, setRouting] = useState(false);
   const [shopInfo, setShopInfo] = useState({ shop_name: '', shop_logo: '' });
@@ -259,7 +257,7 @@ export default function AppLayout() {
       )}
 
       {/* ── Sidebar ────────────────────────────────────────────────────────── */}
-      <aside className={`print:hidden bg-slate-900 flex flex-col shrink-0 select-none transition-all duration-300 overflow-hidden
+      <aside className={`print:hidden bg-slate-900 flex flex-col shrink-0 select-none transition-all duration-300 overflow-hidden shadow-[4px_0_16px_rgba(0,0,0,0.4)]
         fixed inset-y-0 left-0 z-[999] w-64
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
         md:static md:translate-x-0 md:z-auto md:inset-y-auto md:left-auto
@@ -329,13 +327,15 @@ export default function AppLayout() {
         {/* Bottom: collapse toggle + logout */}
         <div className={`border-t border-slate-700/60 shrink-0 py-3 space-y-1 ${displayCollapsed ? 'px-1' : 'px-3'}`}>
           {/* Hide collapse toggle on mobile drawer */}
-          <button onClick={toggleCollapse}
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className={`hidden md:flex items-center gap-2 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700/60 transition-all duration-150
-              ${displayCollapsed ? 'justify-center w-10 mx-auto px-0' : 'px-3 w-full'}`}>
-            {collapsed ? Icons.chevronsRight : Icons.chevronsLeft}
-            {!displayCollapsed && <span className="text-sm font-medium">{t('btn.collapse')}</span>}
-          </button>
+          {!isPosCreate && (
+            <button onClick={toggleCollapse}
+              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              className={`hidden md:flex items-center gap-2 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-700/60 transition-all duration-150
+                ${displayCollapsed ? 'justify-center w-10 mx-auto px-0' : 'px-3 w-full'}`}>
+              {collapsed ? Icons.chevronsRight : Icons.chevronsLeft}
+              {!displayCollapsed && <span className="text-sm font-medium">{t('btn.collapse')}</span>}
+            </button>
+          )}
           <button onClick={handleLogout} title={t('btn.logout')}
             className={`flex items-center gap-2 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-red-600/20 transition-all duration-150
               ${displayCollapsed ? 'justify-center w-10 mx-auto px-0' : 'px-3 w-full'}`}>

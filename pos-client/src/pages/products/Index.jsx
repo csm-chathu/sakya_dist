@@ -504,7 +504,7 @@ export default function ProductsIndex() {
         </select>
 
         {/* All / Low Stock / Promo toggle */}
-        <div className="flex rounded-lg border border-slate-200 overflow-hidden bg-white">
+        <div className="flex rounded-lg border border-slate-200 overflow-hidden bg-white w-full sm:w-auto justify-center">
           <button
             onClick={() => handleFilterToggle('all')}
             className={`px-4 py-2 text-sm font-medium transition-colors ${
@@ -539,29 +539,19 @@ export default function ProductsIndex() {
           </button>
         </div>
 
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-2 w-full sm:w-auto sm:ml-auto">
           <button
             onClick={() => { setViewAll(v => { localStorage.setItem('products_viewAll', String(!v)); return !v; }); setPage(1); }}
-            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg border transition-colors shadow-sm ${viewAll ? 'bg-slate-800 text-white border-slate-800 hover:bg-slate-700' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'}`}
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg border transition-colors shadow-sm ${viewAll ? 'bg-slate-800 text-white border-slate-800 hover:bg-slate-700' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'}`}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
             </svg>
             {viewAll ? 'Paginated' : 'View All'}
           </button>
-          <button
-            onClick={handleExport}
-            disabled={exporting}
-            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-60"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            {exporting ? 'Exporting…' : 'Export CSV'}
-          </button>
           <Link
             to="/products/create"
-            className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
           >
             <span className="text-lg leading-none">+</span> {t('btn.new_product')}
           </Link>
@@ -589,7 +579,7 @@ export default function ProductsIndex() {
               <div className="flex gap-3 mb-3">
                 {/* Image */}
                 {p.image ? (
-                  <img src={p.image} alt={p.name} className="w-12 h-12 rounded-lg object-cover border border-slate-100 shrink-0" />
+                  <img src={p.image} alt={p.name} onClick={() => setImageModal(p.image)} className="w-12 h-12 rounded-lg object-cover border border-slate-100 shrink-0 cursor-zoom-in" />
                 ) : (
                   <div className="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-300 shrink-0">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -625,6 +615,21 @@ export default function ProductsIndex() {
                   ) : (
                     <span className="font-semibold text-green-600 text-sm">{fmtPrice(p.selling_price)}</span>
                   )}
+                  {role === 'admin' && (() => {
+                    const cost   = parseFloat(p.cost_price || 0);
+                    const sell   = parseFloat(p.promo_price || p.selling_price || 0);
+                    const margin = sell > 0 ? ((sell - cost) / sell * 100).toFixed(1) : null;
+                    return (
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[11px] text-slate-400">Cost: <span className="text-slate-600 font-medium">{fmtPrice(cost)}</span></span>
+                        {margin !== null && (
+                          <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded ${parseFloat(margin) >= 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
+                            {margin}%
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
                 <span className={`text-sm font-medium ${isLow ? 'text-red-600' : 'text-slate-700'}`}>
                   {fmtStock(p.stock_qty, p.unit)}

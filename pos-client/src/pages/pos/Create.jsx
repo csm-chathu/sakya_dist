@@ -471,6 +471,7 @@ export default function PosCreate() {
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Amount Paid</p>
                 <input ref={paidRef} type="number" min="0" step="0.01" value={amountPaid}
                   onChange={e => setAmountPaid(e.target.value)} onFocus={e => e.target.select()}
+                  onKeyDown={e => { if (e.key === 'Enter' && cart.length > 0 && !submitting) handleComplete(); }}
                   placeholder={fmt(total)}
                   className="w-full bg-green-900/30 border-2 border-green-600 rounded-xl px-4 py-3 text-green-300 text-2xl font-bold text-right focus:outline-none focus:ring-2 focus:ring-green-400 mb-2"/>
                 {/* change */}
