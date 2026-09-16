@@ -685,7 +685,6 @@ export default function ProductsIndex() {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('prod.barcode')}</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('prod.category')}</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('prod.sell_price')}</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('lbl.our_price')}</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Cost Price</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Margin</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('prod.stock')}</th>
@@ -723,11 +722,6 @@ export default function ProductsIndex() {
                       <td className="px-4 py-3 text-slate-500 text-xs">{p.category?.name || '—'}</td>
                       <td className="px-4 py-3 text-right">
                         <span className="font-semibold text-slate-700">{fmtPrice(p.selling_price)}</span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {p.our_price
-                          ? <span className="font-bold text-orange-500">{fmtPrice(p.our_price)}</span>
-                          : <span className="text-slate-300">—</span>}
                       </td>
                       <td className="px-4 py-3 text-right">
                         {p.cost_price > 0
