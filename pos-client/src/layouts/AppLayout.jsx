@@ -162,8 +162,14 @@ export default function AppLayout() {
     setZoomScale(scale);
   }, [layoutSettings]);
 
+  // Auto-collapse sidebar on POS create page (it has its own full-screen layout)
+  const isPosCreate = location.pathname === '/pos/create';
+  useEffect(() => {
+    if (isPosCreate) setCollapsed(true);
+  }, [isPosCreate]);
+
   // On mobile drawer, always show full labels regardless of collapsed state
-  const displayCollapsed = collapsed && !mobileOpen;
+  const displayCollapsed = (collapsed && !mobileOpen) || isPosCreate;
 
   const pageTitleKey = Object.entries(PAGE_TITLE_KEYS).find(([path]) =>
     location.pathname === path || location.pathname.startsWith(path + '/')
@@ -338,8 +344,8 @@ export default function AppLayout() {
           <div className={`h-full bg-orange-400 transition-all duration-300 ease-out ${routing ? 'w-3/4' : 'w-full'}`} />
         </div>
 
-        {/* Top header */}
-        <header className="print:hidden h-14 bg-white border-b border-slate-200 flex items-center justify-between px-3 md:px-6 shrink-0 shadow-sm">
+        {/* Top header — hidden on POS create (it has its own header) */}
+        <header className={`print:hidden h-14 bg-white border-b border-slate-200 flex items-center justify-between px-3 md:px-6 shrink-0 shadow-sm ${isPosCreate ? 'hidden' : ''}`}>
           <div className="flex items-center gap-2 md:gap-3">
             {/* Hamburger — mobile only */}
             <button

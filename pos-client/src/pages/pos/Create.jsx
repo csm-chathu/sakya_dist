@@ -104,9 +104,6 @@ export default function PosCreate() {
       ).slice(0, 8)
     : [];
 
-  /* ── fast products (all, sorted by name) ── */
-  const fastProducts = allProducts.slice(0, 40);
-
   /* ── keyboard shortcuts ── */
   useEffect(() => {
     const handler = e => {
@@ -383,30 +380,6 @@ export default function PosCreate() {
             )}
           </div>
 
-          {/* Fast products grid */}
-          {fastProducts.length > 0 && (
-            <div className="shrink-0 border-t border-slate-700 bg-slate-800">
-              <p className="px-3 pt-2 text-[10px] font-bold text-orange-400 uppercase tracking-widest flex items-center gap-1">
-                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"/></svg>
-                Fast
-              </p>
-              <div className="flex gap-1.5 overflow-x-auto p-2 pt-1 pb-2 scrollbar-thin scrollbar-track-slate-800 scrollbar-thumb-slate-600">
-                {fastProducts.map(p => (
-                  <button key={p.id} type="button" onClick={() => addProduct(p)}
-                    className="shrink-0 w-20 flex flex-col items-center gap-1 p-1.5 rounded-xl bg-slate-700 hover:bg-slate-600 active:scale-95 transition-all border border-slate-600 text-center">
-                    <div className="w-10 h-10 rounded-lg bg-slate-600 overflow-hidden flex items-center justify-center">
-                      {p.image_url
-                        ? <img src={p.image_url} alt="" className="w-full h-full object-contain"/>
-                        : <span className="text-lg font-bold text-slate-400">{p.name[0]?.toUpperCase()}</span>
-                      }
-                    </div>
-                    <p className="text-[9px] text-slate-300 leading-tight line-clamp-2 w-full">{p.name}</p>
-                    <p className="text-[9px] font-bold text-orange-400">Rs. {fmt(p.selling_price)}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* ══ RIGHT: discount + payment ══ */}

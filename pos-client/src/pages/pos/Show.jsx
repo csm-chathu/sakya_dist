@@ -53,7 +53,7 @@ export default function PosShow() {
   }, []);
 
   useEffect(() => {
-    if (autoPrint && sale && shopInfo) handlePrint();
+    if (autoPrint && sale && shopInfo) handleReceipt();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoPrint, sale?.id, shopInfo?.shop_name]);
 
@@ -126,6 +126,74 @@ ${payNote?`<div style="margin-top:2mm;font-size:8pt;font-weight:700">${payNote}<
 </table></div>
 <div class="sigs"><div><div class="sig-line"></div><span>By</span></div><div style="text-align:center"><div class="sig-line"></div><span>Received By</span></div></div>
 </div></body></html>`;
+  }
+
+  function buildReceiptHtml() {
+    const items    = sale.items || [];
+    const total    = parseFloat(sale.total    || 0);
+    const discount = parseFloat(sale.discount || 0);
+    const subtotal = parseFloat(sale.subtotal || total);
+    const cashPaid = paidCash > 0 ? paidCash : total;
+    const change   = cashPaid - total;
+
+    const itemLines = items.map(item => {
+      const qty   = parseFloat(item.qty || 0);
+      const price = parseFloat(item.unit_price || 0);
+      const iTotal= parseFloat(item.total || qty * price);
+      return `<tr>
+        <td style="padding:1px 0;vertical-align:top">${item.product_name}</td>
+        <td style="text-align:right;white-space:nowrap;padding:1px 0 1px 4px;vertical-align:top">${qty % 1 === 0 ? qty.toFixed(0) : qty.toFixed(2)} x ${fmt(price)}</td>
+        <td style="text-align:right;padding:1px 0 1px 4px;font-weight:700;vertical-align:top;white-space:nowrap">${fmt(iTotal)}</td>
+      </tr>`;
+    }).join('');
+
+    const payLines = payments.map(p =>
+      `<tr><td style="padding:1px 0">${p.method.charAt(0).toUpperCase()+p.method.slice(1)}</td><td style="text-align:right;font-weight:600;padding:1px 0">Rs. ${fmt(p.amount)}</td></tr>`
+    ).join('');
+
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>Receipt ${sale.invoice_no}</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',monospace;font-size:11pt;width:80mm;margin:0 auto;padding:4mm}
+.center{text-align:center}.bold{font-weight:700}.sep{border:none;border-top:1px dashed #000;margin:3mm 0}
+table{width:100%;border-collapse:collapse;font-size:10pt}
+@media print{@page{size:80mm auto;margin:0}body{margin:2mm}}</style>
+</head><body>
+<div class="center">
+  ${shopInfo.shop_logo ? `<img src="${shopInfo.shop_logo}" style="height:36px;object-fit:contain;margin-bottom:2mm">` : ''}
+  <div class="bold" style="font-size:13pt">${shopInfo.shop_name || 'Sakya Enterprises'}</div>
+  ${shopInfo.phone ? `<div>${shopInfo.phone}</div>` : ''}
+  ${shopInfo.address ? `<div style="font-size:9pt">${shopInfo.address}</div>` : ''}
+</div>
+<hr class="sep">
+<table><tbody>
+  <tr><td>Invoice</td><td style="text-align:right;font-weight:700">${sale.invoice_no}</td></tr>
+  <tr><td>Date</td><td style="text-align:right">${fmtInvDate(sale.created_at)}</td></tr>
+  ${sale.customer?.name ? `<tr><td>Customer</td><td style="text-align:right">${sale.customer.name}</td></tr>` : ''}
+</tbody></table>
+<hr class="sep">
+<table><tbody>${itemLines}</tbody></table>
+<hr class="sep">
+<table><tbody>
+  <tr><td>Subtotal</td><td style="text-align:right">Rs. ${fmt(subtotal)}</td></tr>
+  ${discount > 0 ? `<tr><td>Discount</td><td style="text-align:right">- Rs. ${fmt(discount)}</td></tr>` : ''}
+  <tr><td class="bold" style="font-size:13pt">TOTAL</td><td style="text-align:right;font-weight:900;font-size:13pt">Rs. ${fmt(total)}</td></tr>
+</tbody></table>
+<hr class="sep">
+<table><tbody>${payLines}
+  ${paidCash > 0 && change >= 0 ? `<tr><td>Change</td><td style="text-align:right">Rs. ${fmt(change)}</td></tr>` : ''}
+</tbody></table>
+<hr class="sep">
+<div class="center" style="font-size:9pt;margin-top:2mm">Thank you for your purchase!<br>Please keep this receipt.</div>
+</body></html>`;
+  }
+
+  async function handleReceipt() {
+    if (!sale || printing) return;
+    setPrinting(true);
+    try {
+      const win = window.open('', '_blank', 'width=340,height=600,scrollbars=yes');
+      if (win) { win.document.write(buildReceiptHtml()); win.document.close(); win.onload = () => { win.focus(); win.print(); }; }
+    } finally { setPrinting(false); }
   }
 
   async function handlePrint() {
@@ -262,11 +330,18 @@ ${payNote?`<div style="margin-top:2mm;font-size:8pt;font-weight:700">${payNote}<
         </div>
       </div>
 
-      <button onClick={handlePrint} disabled={printing}
-        className="fixed bottom-6 right-6 z-20 flex items-center gap-2 px-6 py-3 rounded-full bg-orange-500 text-white font-semibold text-sm hover:bg-orange-600 disabled:opacity-60 transition-all shadow-lg shadow-orange-500/40">
-        {printing ? IcoSpinner : IcoPrint}
-        <span>{printing ? 'Preparing…' : 'Print Invoice'}</span>
-      </button>
+      <div className="fixed bottom-6 right-6 z-20 flex gap-2">
+        <button onClick={handleReceipt} disabled={printing}
+          className="flex items-center gap-2 px-5 py-3 rounded-full bg-slate-700 text-white font-semibold text-sm hover:bg-slate-800 disabled:opacity-60 transition-all shadow-lg">
+          {printing ? IcoSpinner : IcoPrint}
+          <span>POS Receipt</span>
+        </button>
+        <button onClick={handlePrint} disabled={printing}
+          className="flex items-center gap-2 px-5 py-3 rounded-full bg-orange-500 text-white font-semibold text-sm hover:bg-orange-600 disabled:opacity-60 transition-all shadow-lg shadow-orange-500/40">
+          {printing ? IcoSpinner : IcoPrint}
+          <span>Print Invoice</span>
+        </button>
+      </div>
     </div>
   );
 }
