@@ -43,6 +43,7 @@ app.use('/api/imagekit',       require('./routes/imagekit'));
 app.use('/api/notifications',  require('./routes/notifications'));
 app.use('/api/areas',      require('./routes/areas'));
 app.use('/api/deliveries', require('./routes/deliveries'));
+app.use('/api/locations',  require('./routes/locations'));
 
 // Wrap all async route handlers so thrown errors flow to the error handler
 function wrapAsync(router) {

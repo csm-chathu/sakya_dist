@@ -6,6 +6,7 @@ import { useMeQuery } from '../features/auth/authApi';
 import { useLocale } from '../contexts/LocaleContext';
 import { useTheme } from '../contexts/ThemeContext';
 import NotificationDrawer, { useNotifBadge } from '../components/NotificationDrawer';
+import ShareLocationButton from '../components/ShareLocationButton';
 import { api } from '../app/baseApi';
 import { useGetReportLowStockQuery } from '../features/reports/reportsApi';
 import { getApiUrl } from '../config/runtimeConfig';
@@ -42,6 +43,7 @@ const Icons = {
   truck: <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm10 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>,
   map:   <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 0 1 3 16.382V5.618a1 1 0 0 1 1.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0 0 21 18.382V7.618a1 1 0 0 0-1.447-.894L15 9m0 8V9m0 0L9 7"/></svg>,
   loadsheet: <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 7h6m-6 4h4"/></svg>,
+  pin: <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>,
 };
 
 const PAGE_TITLE_KEYS = {
@@ -68,6 +70,7 @@ const PAGE_TITLE_KEYS = {
   '/deliveries/create':     'New Delivery',
   '/deliveries/loadsheet':  'Load Sheet',
   '/areas':            'Areas',
+  '/admin/locations':  'Rep Locations',
 };
 
 const roleColor = { admin: 'bg-red-500', manager: 'bg-orange-500', cashier: 'bg-green-500', sales: 'bg-blue-500' };
@@ -189,8 +192,9 @@ export default function AppLayout() {
     { to: '/reports',          label: t('nav.reports'),    icon: Icons.reports,  feature: 'reports' },
     { to: '/users',            label: t('nav.users'),      icon: Icons.users,    feature: 'users' },
     { to: '/settings',         label: t('nav.settings'),   icon: Icons.settings, feature: 'settings' },
-    { to: '/admin/data-import',label: 'Data Import',       icon: Icons.upload,   feature: 'data_import',      adminOnly: true },
-    { to: '/settings/roles',   label: 'Role Permissions',  icon: Icons.users,    feature: 'role_permissions', adminOnly: true },
+    { to: '/admin/data-import',  label: 'Data Import',      icon: Icons.upload,   feature: 'data_import',      adminOnly: true },
+    { to: '/settings/roles',     label: 'Role Permissions', icon: Icons.users,    feature: 'role_permissions', adminOnly: true },
+    { to: '/admin/locations',    label: 'Rep Locations',    icon: Icons.pin,      feature: 'locations',        adminOnly: true },
   ].filter(n => canSee(n.feature) && (!n.adminOnly || role === 'admin'));
 
   function toggleCollapse() {
@@ -351,6 +355,7 @@ export default function AppLayout() {
           </div>
 
           <div className="flex items-center gap-1.5 md:gap-3">
+            {role === 'sales' && <ShareLocationButton />}
             {/* Theme toggle */}
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}

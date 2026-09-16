@@ -27,6 +27,7 @@ import UsersIndex     from '../pages/users/Index';
 import SuppliersIndex   from '../pages/suppliers/Index';
 import CategoriesIndex  from '../pages/categories/Index';
 import ImportDataPage   from '../pages/admin/ImportData';
+import LocationsMap     from '../pages/admin/LocationsMap';
 import Settings         from '../pages/Settings';
 import RolesPage        from '../pages/settings/Roles';
 import InvoicesIndex    from '../pages/invoices/Index';
@@ -127,7 +128,8 @@ export const router = createAppRouter([
             {
               element: <AdminOnlyRoute />,
               children: [
-                { path: 'admin/data-import', element: <ImportDataPage /> },
+                { path: 'admin/data-import',  element: <ImportDataPage /> },
+                { path: 'admin/locations',    element: <LocationsMap /> },
               ],
             },
           ],
