@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { api } from '../app/baseApi';
 import { useLocale } from '../contexts/LocaleContext';
@@ -354,6 +354,7 @@ function FastMoving({ items }) {
 export default function Dashboard() {
   const role = useSelector(selectRole);
   if (role === 'manager') return <ManagerDashboard />;
+  if (role === 'cashier' || role === 'sales') return <Navigate to="/products" replace />;
 
   const { data, isLoading, refetch } = dashboardApi.useGetDashboardQuery();
   const navigate = useNavigate();
