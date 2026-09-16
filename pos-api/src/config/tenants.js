@@ -1,6 +1,6 @@
 // Maps each subdomain to its MySQL database
 module.exports = {
-  'shakya-dist.lumac.cc': {
+  'shakya.lumac.cc': {
     database: 'sakya_dist',
     username: 'pos_user',
     password: 'Pos@2026Strong',
