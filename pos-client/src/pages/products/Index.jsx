@@ -680,7 +680,7 @@ export default function ProductsIndex() {
             <table className="w-full text-sm">
               <thead className="bg-slate-200 border-b border-slate-300">
                 <tr>
-                  <th className="px-4 py-3 w-10"></th>
+                  <th className="px-3 py-3 w-28"></th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('th.product')}</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('prod.barcode')}</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{t('prod.category')}</th>
@@ -703,7 +703,7 @@ export default function ProductsIndex() {
                           <img
                             src={p.image} alt={p.name}
                             onClick={() => setImageModal(p.image)}
-                            className="w-24 h-20 rounded-xl object-cover border border-slate-200 cursor-zoom-in hover:scale-105 transition-transform shadow-sm"
+                            className="w-24 h-20 rounded-xl object-contain bg-white border border-slate-200 cursor-zoom-in hover:scale-105 transition-transform shadow-sm"
                           />
                         ) : (
                           <div className="w-24 h-20 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-300">
