@@ -54,9 +54,11 @@ export default function PosShow() {
       const price = parseFloat(item.unit_price || 0);
       const iTotal= parseFloat(item.total || qty * price);
       return `<tr>
-        <td style="padding:2px 0;vertical-align:top;max-width:120px">${item.product_name}</td>
-        <td style="text-align:right;white-space:nowrap;padding:2px 0 2px 6px;vertical-align:top">${qty%1===0?qty.toFixed(0):qty.toFixed(2)} x ${fmt(price)}</td>
-        <td style="text-align:right;padding:2px 0 2px 6px;font-weight:700;vertical-align:top;white-space:nowrap">${fmt(iTotal)}</td>
+        <td colspan="3" style="padding:2px 0 0 0;font-weight:600">${item.product_name}</td>
+      </tr><tr>
+        <td style="padding:0 0 4px 0;color:#666">${qty%1===0?qty.toFixed(0):qty.toFixed(2)} x ${fmt(price)}</td>
+        <td></td>
+        <td style="text-align:right;padding:0 0 4px 0;font-weight:700;white-space:nowrap">${fmt(iTotal)}</td>
       </tr>`;
     }).join('');
 
@@ -74,7 +76,7 @@ table{width:100%;border-collapse:collapse;font-size:10pt}
 @media print{@page{size:80mm auto;margin:0}body{margin:2mm;padding:2mm}}</style>
 </head><body>
 <div class="center">
-  ${shopInfo.shop_logo ? `<img src="${shopInfo.shop_logo}" style="height:36px;object-fit:contain;margin-bottom:2mm"><br>` : ''}
+  ${shopInfo.shop_logo ? `<img src="${shopInfo.shop_logo}" style="height:60px;object-fit:contain;margin-bottom:3mm"><br>` : ''}
   <div class="bold" style="font-size:14pt">${shopInfo.shop_name || 'Sakya Enterprises'}</div>
   ${shopInfo.address ? `<div style="font-size:9pt">${shopInfo.address}</div>` : ''}
   ${shopInfo.phone ? `<div style="font-size:9pt">Tel: ${shopInfo.phone}</div>` : ''}
@@ -150,7 +152,7 @@ table{width:100%;border-collapse:collapse;font-size:10pt}
             <div className="px-5 py-4 font-mono text-xs text-slate-800">
               {/* shop header */}
               <div className="text-center mb-3">
-                {shopInfo.shop_logo && <img src={shopInfo.shop_logo} alt="" className="h-8 object-contain mx-auto mb-1"/>}
+                {shopInfo.shop_logo && <img src={shopInfo.shop_logo} alt="" className="h-16 object-contain mx-auto mb-2"/>}
                 <p className="font-black text-sm">{shopInfo.shop_name || 'Sakya Enterprises'}</p>
                 {shopInfo.address && <p className="text-[10px] text-slate-500">{shopInfo.address}</p>}
                 {shopInfo.phone   && <p className="text-[10px] text-slate-500">Tel: {shopInfo.phone}</p>}
@@ -164,27 +166,20 @@ table{width:100%;border-collapse:collapse;font-size:10pt}
               </div>
               <div className="border-t border-dashed border-slate-300 my-2"/>
               {/* items */}
-              <table className="w-full text-[10px]">
-                <thead>
-                  <tr className="border-b border-slate-200">
-                    <th className="text-left pb-1 font-semibold text-slate-600">Item</th>
-                    <th className="text-right pb-1 font-semibold text-slate-600">Qty×Price</th>
-                    <th className="text-right pb-1 font-semibold text-slate-600">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(sale.items || []).map((item, i) => {
-                    const qty = parseFloat(item.qty || 0), price = parseFloat(item.unit_price || 0);
-                    return (
-                      <tr key={i}>
-                        <td className="py-0.5 pr-2 leading-tight">{item.product_name}</td>
-                        <td className="py-0.5 text-right whitespace-nowrap text-slate-500">{qty%1===0?qty.toFixed(0):qty.toFixed(2)} × {fmt(price)}</td>
-                        <td className="py-0.5 text-right font-bold whitespace-nowrap">{fmt(parseFloat(item.total||qty*price))}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <div className="space-y-1">
+                {(sale.items || []).map((item, i) => {
+                  const qty = parseFloat(item.qty || 0), price = parseFloat(item.unit_price || 0);
+                  return (
+                    <div key={i} className="border-b border-slate-100 pb-1 last:border-0">
+                      <p className="leading-tight font-medium">{item.product_name}</p>
+                      <div className="flex justify-between text-slate-500 mt-0.5">
+                        <span>{qty%1===0?qty.toFixed(0):qty.toFixed(2)} × {fmt(price)}</span>
+                        <span className="font-bold text-slate-800">{fmt(parseFloat(item.total||qty*price))}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
               <div className="border-t border-dashed border-slate-300 my-2"/>
               {/* totals */}
               <div className="space-y-0.5">

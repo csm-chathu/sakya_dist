@@ -57,21 +57,22 @@ router.post('/', auth, async (req, res) => {
   for (const item of items) {
     await PosSaleItem.create({ ...item, pos_sale_id: sale.id });
 
-    const product = await Product.findByPk(item.product_id);
-    if (product) {
-      const before = parseFloat(product.stock_qty);
-      const after  = Math.max(0, before - parseFloat(item.qty));
-      await product.update({ stock_qty: after });
-      await StockMovement.create({
-        product_id:   product.id,
-        user_id:      req.user.id,
-        type:         'out',
-        qty:          item.qty,
-        stock_before: before,
-        stock_after:  after,
-        reference:    invoice_no,
-      });
-    }
+    // Stock deduction disabled for POS sales
+    // const product = await Product.findByPk(item.product_id);
+    // if (product) {
+    //   const before = parseFloat(product.stock_qty);
+    //   const after  = Math.max(0, before - parseFloat(item.qty));
+    //   await product.update({ stock_qty: after });
+    //   await StockMovement.create({
+    //     product_id:   product.id,
+    //     user_id:      req.user.id,
+    //     type:         'out',
+    //     qty:          item.qty,
+    //     stock_before: before,
+    //     stock_after:  after,
+    //     reference:    invoice_no,
+    //   });
+    // }
   }
 
   for (const pay of payments) await PosPayment.create({ ...pay, pos_sale_id: sale.id });

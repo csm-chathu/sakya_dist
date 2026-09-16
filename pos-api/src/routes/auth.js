@@ -33,11 +33,12 @@ async function getEffectiveFeatures(models, userId, roleObj, roleName) {
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) return res.status(422).json({ error: 'Email and password required' });
+  if (!email || !password) return res.status(422).json({ error: 'Email/username and password required' });
 
   const { User, Role, Feature } = req.models;
+  const { Op } = require('sequelize');
   const user = await User.findOne({
-    where: { email },
+    where: { [Op.or]: [{ email }, { name: email }] },
     include: [{ model: Role, through: { attributes: [] } }],
   });
 
