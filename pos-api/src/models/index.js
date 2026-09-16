@@ -206,6 +206,45 @@ function getModels(sequelize) {
     total:              { type: DataTypes.DECIMAL(10, 2), allowNull: false },
   }, { tableName: 'purchase_return_items' });
 
+  const PosSale = sequelize.define('PosSale', {
+    id:           { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    invoice_no:   { type: DataTypes.STRING(191), allowNull: false, unique: true },
+    user_id:      { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    customer_id:  { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
+    subtotal:     { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+    discount:     { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+    total:        { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+    status:       { type: DataTypes.ENUM('completed', 'returned'), defaultValue: 'completed' },
+    notes:        { type: DataTypes.TEXT, allowNull: true },
+  }, { tableName: 'pos_sales' });
+
+  const PosSaleItem = sequelize.define('PosSaleItem', {
+    id:           { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    pos_sale_id:  { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    product_id:   { type: DataTypes.BIGINT.UNSIGNED, allowNull: true },
+    product_name: { type: DataTypes.STRING(191), allowNull: false },
+    unit_price:   { type: DataTypes.DECIMAL(10, 2), allowNull: false },
+    cost_price:   { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+    qty:          { type: DataTypes.DECIMAL(10, 3), allowNull: false },
+    discount:     { type: DataTypes.DECIMAL(10, 2), defaultValue: 0 },
+    total:        { type: DataTypes.DECIMAL(10, 2), allowNull: false },
+  }, { tableName: 'pos_sale_items' });
+
+  const PosPayment = sequelize.define('PosPayment', {
+    id:          { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
+    pos_sale_id: { type: DataTypes.BIGINT.UNSIGNED, allowNull: false },
+    method:      { type: DataTypes.ENUM('cash', 'card', 'qr', 'credit', 'bank_transfer'), defaultValue: 'cash' },
+    amount:      { type: DataTypes.DECIMAL(10, 2), allowNull: false },
+    reference:   { type: DataTypes.STRING(191), allowNull: true },
+  }, { tableName: 'pos_payments' });
+
+  const UserLocation = sequelize.define('UserLocation', {
+    user_id:   { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true },
+    latitude:  { type: DataTypes.DECIMAL(10, 7), allowNull: false },
+    longitude: { type: DataTypes.DECIMAL(10, 7), allowNull: false },
+    accuracy:  { type: DataTypes.FLOAT, allowNull: true },
+  }, { tableName: 'user_locations' });
+
   const Setting = sequelize.define('Setting', {
     id:    { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true },
     key:   { type: DataTypes.STRING(191), allowNull: false, unique: true },
@@ -259,11 +298,18 @@ function getModels(sequelize) {
   Delivery.belongsTo(Area, { foreignKey: 'area_id', as: 'area' });
   Sale.hasMany(Delivery,   { foreignKey: 'sale_id', as: 'deliveries' });
 
+  PosSale.belongsTo(User,     { foreignKey: 'user_id',     as: 'user' });
+  PosSale.belongsTo(Customer, { foreignKey: 'customer_id', as: 'customer' });
+  PosSale.hasMany(PosSaleItem, { foreignKey: 'pos_sale_id', as: 'items' });
+  PosSale.hasMany(PosPayment,  { foreignKey: 'pos_sale_id', as: 'payments' });
+  PosSaleItem.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
+
   return {
     User, Role, Category, Product, ProductVariant,
     Supplier, Customer, Sale, SaleItem, Payment, SaleReturn,
     Purchase, PurchaseItem, PurchaseReturn, PurchaseReturnItem, StockMovement, CreditPayment, Setting, Feature,
     Area, Delivery,
+    PosSale, PosSaleItem, PosPayment,
   };
 }
 

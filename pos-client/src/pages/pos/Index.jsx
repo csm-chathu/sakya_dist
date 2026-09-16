@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useGetSalesQuery, useDeleteSaleMutation } from '../../features/sales/salesApi';
+import { useGetPosSalesQuery, useDeletePosSaleMutation } from '../../features/pos/posApi';
 import { useSelector } from 'react-redux';
 import { selectRole } from '../../features/auth/authSlice';
 import { useLocale } from '../../contexts/LocaleContext';
@@ -42,8 +42,8 @@ export default function PosIndex() {
   const [page, setPage]     = useState(1);
   const [applied, setApplied] = useState({});
 
-  const { data, isLoading } = useGetSalesQuery({ ...applied, page });
-  const [deleteSale] = useDeleteSaleMutation();
+  const { data, isLoading } = useGetPosSalesQuery({ ...applied, page });
+  const [deleteSale] = useDeletePosSaleMutation();
   const rows = data?.data || [];
 
   useEffect(() => {

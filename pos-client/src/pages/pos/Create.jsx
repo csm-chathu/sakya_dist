@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGetCustomersQuery } from '../../features/customers/customersApi';
 import { useGetProductsQuery } from '../../features/products/productsApi';
-import { useCreateSaleMutation } from '../../features/sales/salesApi';
+import { useCreatePosSaleMutation } from '../../features/pos/posApi';
 import { useLocale } from '../../contexts/LocaleContext';
 
 const inputCls = 'border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400';
@@ -157,7 +157,7 @@ export default function PosCreate() {
 
   const { data: customersData } = useGetCustomersQuery({ page: 1, limit: 500 });
   const { data: productsData }  = useGetProductsQuery({ page: 1, limit: 500 });
-  const [createSale, { isLoading: submitting }] = useCreateSaleMutation();
+  const [createSale, { isLoading: submitting }] = useCreatePosSaleMutation();
 
   const customers = customersData?.data || [];
   const products  = productsData?.data || [];
