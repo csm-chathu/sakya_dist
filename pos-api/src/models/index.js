@@ -304,12 +304,16 @@ function getModels(sequelize) {
   PosSale.hasMany(PosPayment,  { foreignKey: 'pos_sale_id', as: 'payments' });
   PosSaleItem.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
 
+  UserLocation.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+  User.hasOne(UserLocation, { foreignKey: 'user_id', as: 'location' });
+
   return {
     User, Role, Category, Product, ProductVariant,
     Supplier, Customer, Sale, SaleItem, Payment, SaleReturn,
     Purchase, PurchaseItem, PurchaseReturn, PurchaseReturnItem, StockMovement, CreditPayment, Setting, Feature,
     Area, Delivery,
     PosSale, PosSaleItem, PosPayment,
+    UserLocation,
   };
 }
 
