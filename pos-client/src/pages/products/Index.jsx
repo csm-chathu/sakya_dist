@@ -463,7 +463,7 @@ export default function ProductsIndex() {
   }
 
   /* ── Sales-only simplified price list view ─────────────────────────── */
-  if (role === 'sales') {
+  if (role === 'sales' || role === 'cashier') {
     return <SalesPriceView />;
   }
 
