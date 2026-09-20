@@ -592,8 +592,8 @@ export default function ProductsIndex() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="font-semibold text-slate-800 truncate">{p.name}</p>
-                      {p.name_si && <p className="text-xs text-slate-400 truncate">{p.name_si}</p>}
+                      <p className="font-semibold text-slate-800 break-words">{p.name}</p>
+                      {p.name_si && <p className="text-xs text-slate-400 break-words">{p.name_si}</p>}
                     </div>
                     <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-semibold ${p.active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
                       {p.active ? t('lbl.active') : t('lbl.inactive')}
