@@ -306,7 +306,7 @@ function SalesPriceView() {
                     {catName}
                   </span>
                 )}
-                <p className="text-sm font-semibold text-slate-800 leading-snug line-clamp-2 flex-1">
+                <p className="text-sm font-semibold text-slate-800 leading-snug break-words flex-1">
                   {p.name}
                 </p>
                 <div className="pt-2 border-t border-slate-100">
