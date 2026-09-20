@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useGetCustomersQuery } from '../../features/customers/customersApi';
+import { useGetCustomersQuery, useQuickAddCustomerMutation } from '../../features/customers/customersApi';
 import { useGetProductsQuery } from '../../features/products/productsApi';
 import { useCreateSaleMutation } from '../../features/sales/salesApi';
 import { useLocale } from '../../contexts/LocaleContext';
@@ -17,8 +17,69 @@ function newRow() {
   return { product_id: '', product_name: '', qty: 1, selling_price: '', total: 0 };
 }
 
+/* ── Quick Create Customer Modal ──────────────────────────────────────────── */
+function QuickCreateModal({ initialName, onClose, onCreated }) {
+  const [name, setName] = useState(initialName || '');
+  const [phone, setPhone] = useState('');
+  const [err, setErr] = useState('');
+  const [quickAdd, { isLoading: saving }] = useQuickAddCustomerMutation();
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setErr('');
+    try {
+      const result = await quickAdd({ name: name.trim(), phone: phone.trim() || undefined }).unwrap();
+      onCreated(result);
+    } catch (e) {
+      setErr(e?.data?.error || 'Failed to create customer');
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <h3 className="font-bold text-slate-800 text-base mb-4">Quick Add Customer</h3>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Name *</label>
+            <input
+              autoFocus
+              className={inputCls + ' w-full'}
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="Customer name"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1">Phone</label>
+            <input
+              className={inputCls + ' w-full'}
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              placeholder="Optional"
+            />
+          </div>
+          {err && <p className="text-xs text-red-500">{err}</p>}
+          <div className="flex gap-2 pt-1">
+            <button type="button" onClick={onClose}
+              className="flex-1 py-2 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition-colors">
+              Cancel
+            </button>
+            <button type="submit" disabled={saving || !name.trim()}
+              className="flex-1 py-2 rounded-xl bg-orange-500 text-white text-sm font-bold hover:bg-orange-600 transition-colors disabled:opacity-60">
+              {saving ? 'Saving…' : 'Create & Select'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 /* ── Searchable Customer Combobox ─────────────────────────────────────────── */
-function CustomerCombobox({ customers, selected, onSelect }) {
+function CustomerCombobox({ customers, selected, onSelect, onQuickCreate }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const ref = useRef(null);
@@ -84,7 +145,21 @@ function CustomerCombobox({ customers, selected, onSelect }) {
             — Walk-in Customer —
           </button>
           {filtered.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-slate-400">No match</div>
+            <div className="px-3 py-2">
+              <p className="text-sm text-slate-400 mb-1.5">No match</p>
+              {onQuickCreate && q.trim() && (
+                <button
+                  type="button"
+                  onMouseDown={() => { setOpen(false); onQuickCreate(q.trim()); }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors"
+                >
+                  <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/>
+                  </svg>
+                  Create &ldquo;{q.trim()}&rdquo;
+                </button>
+              )}
+            </div>
           ) : (
             filtered.map(c => (
               <button
@@ -224,8 +299,10 @@ export default function SalesCreate() {
     payment_method: 'cash',
     discount_pct: '',
     receipt_no: '',
+    cash_paid: '',
   });
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [quickCreateName, setQuickCreateName] = useState(null); // null = closed, string = open
 
   const [items, setItems] = useState([newRow()]);
   const [error, setError] = useState('');
@@ -297,6 +374,13 @@ export default function SalesCreate() {
   const discountAmt = subtotal * Math.min(discountPct, 100) / 100;
   const total = Math.max(0, subtotal - discountAmt);
 
+  // Split payment: cash now + credit balance
+  const cashPaid = form.payment_method === 'cash' && form.cash_paid !== ''
+    ? Math.max(0, parseFloat(String(form.cash_paid).replace(/,/g, '')) || 0)
+    : total;
+  const creditBalance = form.payment_method === 'cash' ? Math.max(0, total - cashPaid) : 0;
+  const isSplit = creditBalance > 0;
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
@@ -304,15 +388,32 @@ export default function SalesCreate() {
     const validItems = items.filter(r => r.product_id && parseFloat(r.qty) > 0);
     if (validItems.length === 0) { setError('Add at least one item'); return; }
 
-    if (form.payment_method === 'credit') {
-      if (!selectedCustomer) { setError('Select a customer for credit sales'); return; }
+    if (form.payment_method === 'credit' || isSplit) {
+      if (!selectedCustomer) {
+        setError(isSplit ? 'Select a customer for the credit balance' : 'Select a customer for credit sales');
+        return;
+      }
+      const creditAmt = form.payment_method === 'credit' ? total : creditBalance;
       const limit   = parseFloat(selectedCustomer.credit_limit || 0);
-      const balance = parseFloat(selectedCustomer.credit_balance || 0);
-      if (limit > 0 && balance + total > limit) {
-        const avail = (limit - balance).toLocaleString('en-LK', { minimumFractionDigits: 2 });
-        if (!window.confirm(`Credit limit exceeded!\n\nAvailable credit: Rs. ${avail}\nOrder total: Rs. ${total.toLocaleString('en-LK', { minimumFractionDigits: 2 })}\n\nProceed anyway?`)) return;
+      const existing = parseFloat(selectedCustomer.credit_balance || 0);
+      if (limit > 0 && existing + creditAmt > limit) {
+        const avail = (limit - existing).toLocaleString('en-LK', { minimumFractionDigits: 2 });
+        if (!window.confirm(`Credit limit exceeded!\n\nAvailable credit: Rs. ${avail}\nCredit portion: Rs. ${creditAmt.toLocaleString('en-LK', { minimumFractionDigits: 2 })}\n\nProceed anyway?`)) return;
       }
     }
+
+    // Build payments array
+    let payments;
+    if (isSplit) {
+      payments = [];
+      if (cashPaid > 0) payments.push({ method: 'cash', amount: cashPaid });
+      payments.push({ method: 'credit', amount: creditBalance });
+    } else {
+      payments = [{ method: form.payment_method, amount: total, reference: form.receipt_no || null }];
+    }
+
+    const paidAmt = form.payment_method === 'credit' ? 0 : cashPaid;
+    const balAmt  = form.payment_method === 'credit' ? total : creditBalance;
 
     const payload = {
       customer_id: selectedCustomer?.id || null,
@@ -330,14 +431,14 @@ export default function SalesCreate() {
           total:        qty * price,
         };
       }),
-      payments: [{ method: form.payment_method, amount: total, reference: form.receipt_no || null }],
+      payments,
       subtotal,
       discount: discountAmt,
       tax: 0,
       extra_charges: 0,
       total,
-      paid: total,
-      balance: 0,
+      paid: paidAmt,
+      balance: balAmt,
       status: 'completed',
       notes: form.notes || null,
       delivery_date: form.delivery_date || null,
@@ -367,6 +468,7 @@ export default function SalesCreate() {
               customers={customers}
               selected={selectedCustomer}
               onSelect={handleCustomerSelect}
+              onQuickCreate={name => setQuickCreateName(name)}
             />
           </div>
           <div>
@@ -503,6 +605,42 @@ export default function SalesCreate() {
                   />
                 </div>
               )}
+              {form.payment_method === 'cash' && (
+                <div className="mt-3 space-y-1">
+                  <label className="block text-xs font-semibold text-slate-500">
+                    Amount Paid Now
+                    <span className="ml-1 font-normal text-slate-400">(leave blank for full payment)</span>
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    placeholder={total.toLocaleString('en-LK', { minimumFractionDigits: 2 })}
+                    className={inputCls + ' w-full'}
+                    value={form.cash_paid}
+                    onChange={e => {
+                      const raw = e.target.value.replace(/[^0-9.]/g, '');
+                      setField('cash_paid', raw);
+                    }}
+                    onBlur={() => {
+                      const n = parseFloat(String(form.cash_paid).replace(/,/g, ''));
+                      if (!isNaN(n)) setField('cash_paid', n.toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                    }}
+                    onFocus={e => {
+                      const raw = String(form.cash_paid).replace(/,/g, '');
+                      setField('cash_paid', raw);
+                      setTimeout(() => e.target.select(), 0);
+                    }}
+                  />
+                  {isSplit && (
+                    <p className="text-xs text-amber-600 font-semibold flex items-center gap-1 mt-1">
+                      <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                      </svg>
+                      Rs. {creditBalance.toLocaleString('en-LK', { minimumFractionDigits: 2 })} will be added to customer credit
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1">Discount (%)</label>
@@ -534,6 +672,28 @@ export default function SalesCreate() {
               <span>Total</span>
               <span>Rs. {total.toLocaleString('en-LK', { minimumFractionDigits: 2 })}</span>
             </div>
+            {isSplit && (
+              <div className="mt-2 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 space-y-1.5">
+                <div className="flex justify-between text-sm text-slate-600">
+                  <span className="flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a5 5 0 00-10 0v2M5 9h14l1 11H4L5 9z"/>
+                    </svg>
+                    Cash Paid
+                  </span>
+                  <span className="font-semibold text-green-700">Rs. {cashPaid.toLocaleString('en-LK', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between text-sm text-slate-600">
+                  <span className="flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                    </svg>
+                    Credit (Pay Later)
+                  </span>
+                  <span className="font-semibold text-amber-700">Rs. {creditBalance.toLocaleString('en-LK', { minimumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {error && (
@@ -558,6 +718,17 @@ export default function SalesCreate() {
           </div>
         </div>
       </form>
+
+      {quickCreateName !== null && (
+        <QuickCreateModal
+          initialName={quickCreateName}
+          onClose={() => setQuickCreateName(null)}
+          onCreated={raw => {
+            setQuickCreateName(null);
+            handleCustomerSelect(raw?.customer || raw);
+          }}
+        />
+      )}
     </div>
   );
 }
