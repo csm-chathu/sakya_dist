@@ -3,13 +3,14 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import electron from 'vite-plugin-electron/simple'
 const isElectron = process.env.BUILD_TARGET === 'electron'
+const isAndroid  = process.env.BUILD_TARGET === 'android'
 
 export default defineConfig({
   plugins: [
     react(),
 
-    // Web build: service worker so the app loads offline from browser cache
-    !isElectron && VitePWA({
+    // Web build only: service worker disabled for Android (Capacitor handles offline)
+    !isElectron && !isAndroid && VitePWA({
       registerType: 'autoUpdate',
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],

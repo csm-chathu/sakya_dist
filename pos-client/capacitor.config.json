@@ -3,7 +3,8 @@
   "appName": "Shakya",
   "webDir": "dist",
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "hostname": "shakya-app"
   },
   "android": {
     "allowMixedContent": true
