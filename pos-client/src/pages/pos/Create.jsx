@@ -47,7 +47,7 @@ export default function PosCreate() {
   const role      = useSelector(selectRole);
 
   const { data: customersData } = useGetCustomersQuery({ page: 1, limit: 500 });
-  const { data: productsData }  = useGetProductsQuery({ page: 1, limit: 500 });
+  const { data: productsData }  = useGetProductsQuery({ page: 1, limit: 1500 });
   const [createPosSale, { isLoading: submitting }] = useCreatePosSaleMutation();
   const [quickAddCustomer] = useQuickAddCustomerMutation();
 
