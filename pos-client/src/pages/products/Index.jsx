@@ -56,6 +56,54 @@ function printBarcode(product, qty = 1) {
   return Promise.resolve();
 }
 
+function printDailyTracker(products) {
+  const month = new Date().toLocaleString('en-LK', { month: 'long', year: 'numeric' });
+  const rows = products.map((p, i) => `
+    <tr>
+      <td class="num">${i + 1}</td>
+      <td class="name">${p.name.replace(/</g,'&lt;')}</td>
+      ${Array.from({length:30},()=>`<td class="box"></td>`).join('')}
+    </tr>`).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Daily Tracker — ${month}</title>
+  <style>
+    @page { size: A4 landscape; margin: 8mm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; font-size: 8pt; }
+    h2 { text-align: center; font-size: 11pt; margin-bottom: 6px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #999; }
+    th.num-h { width: 22px; text-align: center; padding: 2px 1px; font-size: 6pt; background: #f0f0f0; }
+    th.name-h { width: 140px; text-align: left; padding: 3px 4px; font-size: 7pt; background: #f0f0f0; }
+    th.day { width: 22px; text-align: center; padding: 2px 1px; font-size: 6pt; background: #f0f0f0; }
+    td.num { width: 22px; text-align: center; padding: 2px 1px; font-size: 7pt; color: #555; }
+    td.name { width: 140px; padding: 2px 4px; font-size: 7pt; word-break: break-word; }
+    td.box { width: 22px; height: 18px; text-align: center; vertical-align: top; padding: 1px; }
+    footer { text-align: right; font-size: 7pt; color: #666; margin-top: 6px; }
+    tr:nth-child(even) td.name { background: #fafafa; }
+    @media print { @page { size: A4 landscape; margin: 8mm; } }
+  </style>
+  </head><body>
+  <h2>Daily Sales Tracker — ${month}</h2>
+  <table>
+    <thead><tr>
+      <th class="num-h">#</th>
+      <th class="name-h">Product</th>
+      ${Array.from({length:30},(_,i)=>`<th class="day">${i+1}</th>`).join('')}
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <footer>All rights reserved &copy; Shakya Enterprises</footer>
+  </body></html>`;
+
+  const win = window.open('', '_blank', 'width=1100,height=700');
+  if (!win) return;
+  win.document.write(html);
+  win.document.close();
+  win.onload = () => { win.focus(); win.print(); };
+}
+
 function downloadSampleCSV() {
   const csv  = [SAMPLE_CSV_HEADERS, SAMPLE_CSV_ROW].join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
@@ -548,6 +596,13 @@ export default function ProductsIndex() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
             </svg>
             {viewAll ? 'Paginated' : 'View All'}
+          </button>
+          <button
+            onClick={() => printDailyTracker(rows)}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-colors shadow-sm"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            Daily Tracker
           </button>
           <Link
             to="/products/create"
