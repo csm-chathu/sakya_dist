@@ -83,9 +83,9 @@ router.get('/top-products', auth, async (req, res) => {
 // GET /api/reports/low-stock
 router.get('/low-stock', auth, async (req, res) => {
   const { Product, Category } = req.models;
+  const db = req.db;
   const products = await Product.findAll({
-    where: { active: true },
-    having: db => db.literal('stock_qty <= alert_qty'),
+    where: { active: true, [Op.and]: db.literal('stock_qty <= alert_qty') },
     include: [{ model: Category, as: 'category', attributes: ['id', 'name'] }],
     order: [['stock_qty', 'ASC']],
   });
